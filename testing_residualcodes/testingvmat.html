@@ -136,10 +136,9 @@ $(document).ready(function () {
 <p>So there’s no problem with my code!</p>
 <pre class="r"><code>rm(list=ls())
 system(&quot;ls; rm *rds;rm *txt; rm *pdf&quot;)
-library('mash')
-library('mvtnorm')
-library(&quot;SQUAREM&quot;)
-library(&quot;mvtnorm&quot;)</code></pre>
+library('mash')</code></pre>
+<pre><code>## Loading required package: SQUAREM</code></pre>
+<pre><code>## Loading required package: mvtnorm</code></pre>
 <p>Here, I simulate some data in which the residuals are correlated</p>
 <pre class="r"><code>sim.with.error=function(J,d=44,betasd=1,esd=0.11,n=400,rho=0.8){
    n=n
@@ -181,7 +180,8 @@ library(&quot;mvtnorm&quot;)</code></pre>
   }
 }</code></pre>
 <p>Here, I simulate 1000 values, 400 of which are <code>true</code> shared structured with <span class="math">\(rho\)</span> = 0.8 in the correlation of residual matrix.</p>
-<p>To test the simulations are accurate, make sure that the covariance of the nulls is the same as the covariance of the errors:</p>
+<p>To test the simulations are accurate, make sure that the covariance of the nulls is the same as the covariance of the errors. This should be true because under the simulation framework above,</p>
+<p><span class="math">\[B_null=0+E\]</span></p>
 <pre class="r"><code>(cov(s$betahat[401:1000,])[1:5,1:5])</code></pre>
 <pre><code>##             V1          V2          V3          V4          V5
 ## V1 0.011537213 0.008843323 0.008783923 0.009307824 0.008813660
@@ -196,7 +196,7 @@ library(&quot;mvtnorm&quot;)</code></pre>
 ## [3,] 0.008783923 0.008371736 0.010829103 0.008890581 0.008411636
 ## [4,] 0.009307824 0.008835393 0.008890581 0.012011765 0.008812083
 ## [5,] 0.008813660 0.008388811 0.008411636 0.008812083 0.010608879</code></pre>
-<p>And most importantly, we want to make sure that this resembles the <em>true</em> residaul matrix:</p>
+<p>And most importantly, we want to make sure that this resembles the <em>true</em> residaul matrix since <span class="math">\[E ~ N(0,V)\]</span></p>
 <pre class="r"><code>s$var.mat[1:5,1:5]</code></pre>
 <pre><code>##             [,1]        [,2]        [,3]        [,4]        [,5]
 ## [1,] 0.012390065 0.009778049 0.009638546 0.009922640 0.009854220

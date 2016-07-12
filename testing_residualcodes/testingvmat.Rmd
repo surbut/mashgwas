@@ -26,9 +26,7 @@ So there's no problem with my code!
 rm(list=ls())
 system("ls; rm *rds;rm *txt; rm *pdf")
 library('mash')
-library('mvtnorm')
-library("SQUAREM")
-library("mvtnorm")
+
 ```
 
 Here, I simulate some data in which the residuals are correlated
@@ -82,14 +80,18 @@ set.seed(seed)
 s=sim.with.error(J = 1000,d = 44,rho = 0.8,n=400)
 ```
 
-To test the simulations are accurate, make sure that the covariance of the nulls is the same as the covariance of the errors:
+To test the simulations are accurate, make sure that the covariance of the nulls is the same as the covariance of the errors. This should be true because under the simulation framework above,
+
+$$B_null=0+E$$
+
+
 
 ```{r test}
 (cov(s$betahat[401:1000,])[1:5,1:5])
 (cov(s$error[401:1000,])[1:5,1:5])
 ```
 
-And most importantly, we want to make sure that this resembles the *true* residaul matrix:
+And most importantly, we want to make sure that this resembles the *true* residaul matrix since $$E ~ N(0,V)$$
 ```{r}
 s$var.mat[1:5,1:5]
 ```
@@ -308,11 +310,11 @@ fp.diag.mat=NULL
 tp.var.mat=NULL
 tp.diag.mat=NULL
 for(t in 1:length(thresh)){
-  s=thresh[t]
-  fp.var.mat[t]=mean(beta==0&lfsr.var.mat<s)
-  fp.diag.mat[t]=mean(beta==0&lfsr.diag.mat<s)
-  tp.var.mat[t]=mean(beta!=0&lfsr.var.mat<s)
-  tp.diag.mat[t]=mean(beta!=0&lfsr.diag.mat<s)
+  sig=thresh[t]
+  fp.var.mat[t]=mean(beta==0&lfsr.var.mat<sig)
+  fp.diag.mat[t]=mean(beta==0&lfsr.diag.mat<sig)
+  tp.var.mat[t]=mean(beta!=0&lfsr.var.mat<sig)
+  tp.diag.mat[t]=mean(beta!=0&lfsr.diag.mat<sig)
 }
 
 plot(fp.var.mat,tp.var.mat,type="l",col="green")
