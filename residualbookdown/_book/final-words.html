@@ -8,7 +8,7 @@
   <title>A Minimal Book Example</title>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
   <meta name="description" content="A Minimal Book Example">
-  <meta name="generator" content="bookdown 0.0.71 and GitBook 2.6.7">
+  <meta name="generator" content="bookdown 0.0.80 and GitBook 2.6.7">
 
   <meta property="og:title" content="A Minimal Book Example" />
   <meta property="og:type" content="book" />
@@ -25,7 +25,7 @@
 
 <meta name="author" content="Yihui Xie">
 
-<meta name="date" content="2016-07-12">
+<meta name="date" content="2016-07-13">
 
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
@@ -98,7 +98,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li class="chapter" data-level="5" data-path="comparing-with-the-old-code.html"><a href="comparing-with-the-old-code.html"><i class="fa fa-check"></i><b>5</b> Comparing with the old code</a></li>
 <li class="chapter" data-level="6" data-path="final-words.html"><a href="final-words.html"><i class="fa fa-check"></i><b>6</b> Final Words</a><ul>
 <li class="chapter" data-level="6.1" data-path="final-words.html"><a href="final-words.html#testing-under-et-model"><i class="fa fa-check"></i><b>6.1</b> Testing Under ET Model</a></li>
-<li class="chapter" data-level="6.2" data-path="final-words.html"><a href="final-words.html#posteriors-with-et"><i class="fa fa-check"></i><b>6.2</b> Posteriors With ET</a></li>
+<li class="chapter" data-level="6.2" data-path="final-words.html"><a href="final-words.html#posteriors-with-ee"><i class="fa fa-check"></i><b>6.2</b> Posteriors with EE</a></li>
+<li class="chapter" data-level="6.3" data-path="final-words.html"><a href="final-words.html#posteriors-with-et"><i class="fa fa-check"></i><b>6.3</b> Posteriors With ET</a></li>
 </ul></li>
 <li class="divider"></li>
 <li><a href="https://www.rstudio.com" target="blank">Published with RStudio Press</a></li>
@@ -176,7 +177,9 @@ test=<span class="kw">exp</span>(lik.mat)
 <span class="kw">total.lik.func</span>(test,pis)</code></pre>
 <pre><code>## [1] -36472.73</code></pre>
 
-<p><strong>Posterior Tests</strong></p>
+</div>
+<div id="posteriors-with-ee" class="section level2">
+<h2><span class="header-section-number">6.2</span> Posteriors with EE</h2>
 <p>Now, let’s also test our ability to compute posteriors under both methods. Again, let’s use but EE and ET, first try with diagonalised standard errors to show that the results match our previous computations.</p>
 <pre class="sourceCode r"><code class="sourceCode r">j=<span class="kw">sample</span>(<span class="dv">100</span>,<span class="dv">1</span>)
 pis=<span class="kw">readRDS</span>(<span class="st">&quot;pistestwitholdcode.rds&quot;</span>)
@@ -326,7 +329,7 @@ for(t in <span class="dv">1</span>:<span class="kw">length</span>(thresh)){
 
 </div>
 <div id="posteriors-with-et" class="section level2">
-<h2><span class="header-section-number">6.2</span> Posteriors With ET</h2>
+<h2><span class="header-section-number">6.3</span> Posteriors With ET</h2>
 <p>And now, let’s make sure the RMSE is better. We’ll use the ET now:</p>
 <pre class="sourceCode r"><code class="sourceCode r">covmat=<span class="kw">lapply</span>(s$component.mats,function(x){
   <span class="co">#median(abs(s$t.stat))^2*</span>
@@ -407,7 +410,7 @@ gitbook.start({
 "link": "https://github.com/rstudio/bookdown-demo/edit/master/inst/examples/05-summary.Rmd",
 "text": "Edit"
 },
-"download": null,
+"download": ["bookdown-demo.pdf"],
 "toc": {
 "collapse": "subsection"
 }

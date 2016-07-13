@@ -8,7 +8,7 @@
   <title>A Minimal Book Example</title>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
   <meta name="description" content="A Minimal Book Example">
-  <meta name="generator" content="bookdown 0.0.71 and GitBook 2.6.7">
+  <meta name="generator" content="bookdown 0.0.80 and GitBook 2.6.7">
 
   <meta property="og:title" content="A Minimal Book Example" />
   <meta property="og:type" content="book" />
@@ -25,7 +25,7 @@
 
 <meta name="author" content="Yihui Xie">
 
-<meta name="date" content="2016-07-12">
+<meta name="date" content="2016-07-13">
 
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
@@ -98,7 +98,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li class="chapter" data-level="5" data-path="comparing-with-the-old-code.html"><a href="comparing-with-the-old-code.html"><i class="fa fa-check"></i><b>5</b> Comparing with the old code</a></li>
 <li class="chapter" data-level="6" data-path="final-words.html"><a href="final-words.html"><i class="fa fa-check"></i><b>6</b> Final Words</a><ul>
 <li class="chapter" data-level="6.1" data-path="final-words.html"><a href="final-words.html#testing-under-et-model"><i class="fa fa-check"></i><b>6.1</b> Testing Under ET Model</a></li>
-<li class="chapter" data-level="6.2" data-path="final-words.html"><a href="final-words.html#posteriors-with-et"><i class="fa fa-check"></i><b>6.2</b> Posteriors With ET</a></li>
+<li class="chapter" data-level="6.2" data-path="final-words.html"><a href="final-words.html#posteriors-with-ee"><i class="fa fa-check"></i><b>6.2</b> Posteriors with EE</a></li>
+<li class="chapter" data-level="6.3" data-path="final-words.html"><a href="final-words.html#posteriors-with-et"><i class="fa fa-check"></i><b>6.3</b> Posteriors With ET</a></li>
 </ul></li>
 <li class="divider"></li>
 <li><a href="https://www.rstudio.com" target="blank">Published with RStudio Press</a></li>
@@ -125,7 +126,11 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>Here, I simulate some data in which the residuals are correlated.</p>
 <p>Thus <span class="math">\(\beta \sim N(0,Uk)\)</span> and <span class="math">\(\hat{\beta} \sim N(0,Uk+Vj)\)</span></p>
 <p>Such that <span class="math">\(\hat{\beta} = \beta + E\)</span> where <span class="math">\(E \sim N(0,Vj)\)</span></p>
-<pre class="sourceCode r"><code class="sourceCode r">sim.with.error=function(J,<span class="dt">d=</span><span class="dv">44</span>,<span class="dt">betasd=</span><span class="dv">1</span>,<span class="dt">esd=</span><span class="fl">0.11</span>,<span class="dt">n=</span><span class="dv">400</span>,<span class="dt">rho=</span><span class="fl">0.8</span>){
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">rm</span>(<span class="dt">list=</span><span class="kw">ls</span>())
+<span class="kw">system</span>(<span class="st">&quot;ls; rm *rds;rm *txt; rm *pdf&quot;</span>)
+<span class="kw">library</span>(<span class="st">&#39;mash&#39;</span>)
+
+sim.with.error=function(J,<span class="dt">d=</span><span class="dv">44</span>,<span class="dt">betasd=</span><span class="dv">1</span>,<span class="dt">esd=</span><span class="fl">0.11</span>,<span class="dt">n=</span><span class="dv">400</span>,<span class="dt">rho=</span><span class="fl">0.8</span>){
    n=n
   covmat=<span class="kw">readRDS</span>(<span class="kw">system.file</span>(<span class="st">&#39;simdata/covmatforsimulation.rds&#39;</span>, <span class="dt">package =</span> <span class="st">&#39;mash&#39;</span>))[<span class="dv">2</span>:<span class="dv">9</span>]
   covmat=<span class="kw">lapply</span>(<span class="kw">seq</span>(<span class="dv">1</span>:<span class="kw">length</span>(covmat)),function(x){covmat[[x]]/<span class="kw">max</span>(<span class="kw">diag</span>(covmat[[x]]))})
@@ -166,8 +171,6 @@ code > span.er { color: #ff0000; font-weight: bold; }
 }</code></pre>
 <p>You can see that in this simulation, the <span class="math">\(V.j\)</span> matrix for ever gene is the same for every j, and the standard errors for the tissues are all roughly equivalnet (centered aroun 0.10.)</p>
 <p>I simulate 1000 values, 400 of which are <code>true</code> shared structured with <span class="math">\(rho\)</span> = 0.8 in the correlation of residual matrix.</p>
-<pre><code>## Loading required package: SQUAREM</code></pre>
-<pre><code>## Loading required package: mvtnorm</code></pre>
 <pre><code>## $names
 ## [1] &quot;beta&quot;           &quot;betahat&quot;        &quot;component.mats&quot; &quot;sebetahat&quot;     
 ## [5] &quot;t.stat&quot;         &quot;component.id&quot;   &quot;error&quot;          &quot;var.mat&quot;       
@@ -210,7 +213,7 @@ gitbook.start({
 "link": "https://github.com/rstudio/bookdown-demo/edit/master/inst/examples/02-literature.Rmd",
 "text": "Edit"
 },
-"download": null,
+"download": ["bookdown-demo.pdf"],
 "toc": {
 "collapse": "subsection"
 }
