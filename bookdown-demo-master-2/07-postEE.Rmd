@@ -1,0 +1,85 @@
+
+## Posteriors with EE
+
+Now, let's also test our ability to compute posteriors under both methods. Again, let's use but EE and ET, first try with diagonalised standard errors to show that the results match our previous computations.
+
+```{r,cache=F}
+
+
+j=sample(100,1)
+pis=readRDS("pistestwitholdcode.rds")
+b.with.old.code=total.quant.per.snp(j = j,covmat = s$component.mats,b.gp.hat = s$betahat,se.gp.hat = s$sebetahat,pis = pis$pihat,checkpoint = T)
+
+##and here was where I used the new code (i.e. with vmat), with the squared standard error on the diagonal. 
+
+pis=readRDS("pistesteewithdiagvmat.rds")
+b.with.new.code=total.quant.per.snp.with.vmat(j = j,covmat = s$component.mats,b.gp.hat = s$betahat,var.mat = diag(diag(s$sebetahat^2)),pis = pis$pihat,checkpoint = T)
+
+rbind(b.with.new.code$posterior.means,b.with.old.code$posterior.means)
+rbind(b.with.new.code$lfsr,b.with.old.code$lfsr)
+##and let's do the same thing for the t stat
+
+j=sample(100,1)
+pis=readRDS("pist.testwitholdcode.rds")
+t.with.old.code=total.quant.per.snp(j = j,covmat = covmat,b.gp.hat = s$t.stat,se.gp.hat = s$sebetahat/s$sebetahat,pis = pis$pihat,checkpoint = T)
+
+##and here was where I used the new code (i.e. with vmat), with the squared standard error on the diagonal. Let's use the same pis just so that we're testing the posterior code and not the HM, which might have slightly different weights (but the total likelihood was the same)
+
+pis=readRDS("pistestwithtdiag.rds")
+t.with.new.code=total.quant.per.snp.with.vmat(j = j,covmat = covmat,b.gp.hat = s$t.stat,var.mat = diag(1,44),pis = pis$pihat,checkpoint = T)
+
+rbind(t.with.new.code$posterior.means,t.with.old.code$posterior.means)
+
+rbind(t.with.new.code$lfsr,t.with.old.code$lfsr)
+```
+
+And now, let's make sure the RMSE is better. We'll use the EE, and I first checked to make sure that the posterior results using the old code and the diagonalized vmat with the new code were the same.
+
+```{r,cache=T}
+covmat=s$component.mats
+pis=readRDS("pistestwitholdcode.rds")$pihat
+weightedquants=lapply(seq(1:nrow(s$betahat)),function(j){total.quant.per.snp(j,covmat,b.gp.hat=s$betahat,se.gp.hat = s$sebetahat,pis,A="testwitholdcode",checkpoint = FALSE)})
+
+##check to make sure results same
+
+pis=readRDS("pistesteewithdiagvmat.rds")$pihat
+weightedquants=lapply(seq(1:nrow(s$betahat)),function(j){total.quant.per.snp(j,covmat,b.gp.hat=s$betahat,se.gp.hat = s$sebetahat,pis,A="eewithdiagvmat",checkpoint = FALSE)})
+
+pis=readRDS("pistestwithrealvmat.rds")$pihat
+weightedquants=lapply(seq(1:nrow(s$betahat)),function(j){total.quant.per.snp.with.vmat(j,covmat,b.gp.hat=s$betahat,var.mat = s$var.mat,pis,A="testwithrealvmat",checkpoint = FALSE)})
+
+post.means.var.mat=as.matrix(read.table("testwithrealvmatposterior.means.txt")[,-1])
+post.means.diag.mat=as.matrix(read.table("eewithdiagvmatposterior.means.txt")[,-1])
+beta=as.matrix(s$beta)
+```
+
+And the RMSE is so much better!!!
+
+```{r}
+rmse.table=data.frame("withresidualmat"=sqrt(mean((beta[1:1000,]-post.means.var.mat[1:1000,])^2)),"diagresiduals"=sqrt(mean((beta[1:1000,]-post.means.diag.mat[1:1000,])^2)))
+barplot(as.matrix(rmse.table),names=colnames(rmse.table))
+```
+
+As are the ROC curves:
+
+```{r}
+
+lfsr.diag.mat=read.table("testwitholdcodelfsr.txt")[,-1]
+lfsr.var.mat=read.table("testwithrealvmatlfsr.txt")[,-1]
+
+thresh=seq(0,0.5,by=0.01)
+fp.var.mat=NULL
+fp.diag.mat=NULL
+tp.var.mat=NULL
+tp.diag.mat=NULL
+for(t in 1:length(thresh)){
+  sig=thresh[t]
+  fp.var.mat[t]=mean(beta==0&lfsr.var.mat<sig)
+  fp.diag.mat[t]=mean(beta==0&lfsr.diag.mat<sig)
+  tp.var.mat[t]=mean(beta!=0&lfsr.var.mat<sig)
+  tp.diag.mat[t]=mean(beta!=0&lfsr.diag.mat<sig)
+}
+
+plot(fp.var.mat,tp.var.mat,type="l",col="green")
+lines(fp.diag.mat,tp.diag.mat,col="red")
+```

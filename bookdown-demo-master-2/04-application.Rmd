@@ -1,0 +1,57 @@
+---
+knit: bookdown::preview_chapter
+---
+
+# Comparing with the old code
+
+First, let's test that even though we have correlation of the error terms, using the old code which did not allow for a nondiagonal $V_j$ matrix and the new code specificying a diagonal matrix results in the same answers. Remember that the old code simply took $V_{j}$ as `diag(s_{j)`.
+
+First, we test this under the EE model where we input a $JxR$ matrix of $\hat{\beta}$ hats and their estimated standard errors into the old code.
+
+For simplicity and because this isn't to compare our inference measures with others, I'm just going to use a list of the 8 simulated covariance matrices, so our likelihood matrix will only need to be $1000x8$.
+
+Here with the new code, where we specify the same vmat for each gene:
+```{r}
+
+covmat=s$component.mats
+compute.hm.train.log.lik.pen.vmat(train.b = s$betahat[1:1000,],covmat=covmat,A = "testeewithdiagvmat",pen = 1,vmat = diag(diag(s$var.mat)))
+
+lik.mat=readRDS("liketraintesteewithdiagvmat.rds")
+pis=readRDS("pistesteewithdiagvmat.rds")$pihat
+test=exp(lik.mat)
+total.lik.func(test,pis)
+
+```
+
+
+
+We double check that `s.j^2` is accordingly the diagonal `s$var.mat`
+```{r}
+plot(s$sebetahat[1,]^2,diag(s$var.mat))
+```
+
+Then we compute the likelihood using the old code. Remember that here, we input a matrix of standard errors. In this case the vector of simulated standard errors will be the same for each gene. I did this so I could be assured that the new code and old code performed the same when errors are assumed uncorrelated.
+
+```{r}
+compute.hm.train.log.lik.pen(train.b = s$betahat[1:1000,],se.train = s$sebetahat,covmat = covmat,A="testwitholdcode",pen=1)
+
+lik.mat=readRDS("liketraintestwitholdcode.rds")
+pis=readRDS("pistestwitholdcode.rds")$pihat
+test=exp(lik.mat)
+total.lik.func(test,pis)
+```
+
+Great! Now let's make sure the likelihoods are better when we use the residual matrix. Here, we input the true variance matrix of the errors, `vmat=s$var.mat` and we show that there is a greatly improved likelihood when correlation among residuals exist!
+
+```{r}
+covmat=s$component.mats
+compute.hm.train.log.lik.pen.vmat(train.b = s$betahat[1:1000,],covmat=covmat,A = "testwithrealvmat",pen = 1,vmat = s$var.mat)
+
+lik.mat=readRDS("liketraintestwithrealvmat.rds")
+pis=readRDS("pistestwithrealvmat.rds")$pihat
+test=exp(lik.mat)
+total.lik.func(test,pis)
+```
+
+
+

@@ -1,0 +1,61 @@
+---
+knit: bookdown::preview_chapter
+---
+
+
+##Testing Under ET Model##
+
+Great!! Now let's make sure this is true with the ET model.Recall that in the ET model:
+
+$$\frac{\beta}{\hat{s}} \sim N(0,Uk)$$
+Thus the input summary statistic is  $t_j \sim N(0,V_j)$ where $t_{jr}$ has standard error of 1.
+
+First, we repeat the checks between the old and new code check to see they give the same result when the residuals are assumed to be uncorrelated (i.e., var mat is the Identity matrix)
+
+```{r}
+##Here i just rescale the covariance matrices to be consistent with the fact that the true Z's are on order $1/standard error$ larger.
+covmat=lapply(s$component.mats,function(x){
+  #median(abs(s$t.stat))^2*
+  (1/0.11)^2*x})
+compute.hm.train.log.lik.pen.vmat(train.b = s$t.stat[1:1000,],covmat=covmat,A = "testwithtdiag",pen = 1,vmat = diag(1,44))
+lik.mat=readRDS("liketraintestwithtdiag.rds")
+pis=readRDS("pistestwithtdiag.rds")$pihat
+test=exp(lik.mat)
+total.lik.func(test,pis)
+```
+
+And now we repeat with the old code which required a $JxR$ matrix of standard erros, so we need repeat
+
+```{r}
+compute.hm.train.log.lik.pen(train.b = s$t.stat[1:1000,],se.train = s$sebetahat/s$sebetahat,covmat = covmat,A="t.testwitholdcode",pen=1)
+
+lik.mat=readRDS("liketraint.testwitholdcode.rds")
+pis=readRDS("pist.testwitholdcode.rds")$pihat
+test=exp(lik.mat)
+total.lik.func(test,pis)
+
+```
+
+Good! And let's make sure the likelihood with the real vmat is better under the ET assumption. Recall that here, we can use `cov2cor` of the var mat so that the diagonals are 1 and every off diagonal element is divided by the $sj_i,sj_r$
+
+```{r}
+
+compute.hm.train.log.lik.pen.vmat(train.b = s$t.stat[1:1000,],covmat=covmat,A = "test.tcov2cor",pen = 1,vmat = cov2cor(s$var.mat))
+```
+
+Just to validate using the vmat as the `cov2cor` of the true var.mat, let's look at the actual empirical covariance of the null t statistics values:
+
+```{r}
+cov(s$t.stat[401:1000,])[1:5,1:5]
+cov2cor(s$var.mat)[1:5,1:5]
+```
+
+
+And here we go. You'll note that **the likelihood in this case, where the residuals are highly structured, is much improved**!! Great!!!
+
+```{r}
+lik.mat=readRDS("liketraintest.tcov2cor.rds")
+pis=readRDS("pistest.tcov2cor.rds")$pihat
+test=exp(lik.mat)
+total.lik.func(test,pis)
+```

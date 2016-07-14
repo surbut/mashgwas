@@ -1,0 +1,28 @@
+---
+knit: bookdown::preview_chapter
+---
+
+# Introduction {#intro}
+
+The purpose of this is to test the new results with residual matrix coding, and to demonstrate that in simulationw with a known residual matrix, the likelihood is better using the correlated residuals than without.
+
+The purpose of the document is thus three fold:
+
+1) We show that using a variance matrix as an input to `compute.hm.log.lik.pen.vmat` (as opposed to `comput.hm.log.lik.pen` with a matrix of standard errors to be diagonalized) results in the same values when the matrix input the `var.mat` is simply the diagonalized vector of squared standard errors (and all genes have the same standard error in this simulation.)
+
+2) We demonstrate this result under the EE and EZ model. In the EZ model, recall that the vector of standard erros is simply a vector of 1s, and accordingly the var.mat is the Identity matrix.
+
+3) In the  setting with a residual matrix in which the correlation in errors is 0.80, I demonstrate that under both the EE and EZ model, the likelihoods are better using the residual matrix input as opposed to the identiy matrix. 
+
+* We see that in the EZ model, this is just `cov2cor` of the known var.mat, because the $t$ statistics are $\frac{\hat{\beta}}{s_j}$, and so the V.j of $\hat{\beta}$ must be scaled accordingly such that the element along the diagonal is 1 (i.e., divided $s_{jr}^2/s_{jr}^2$ and divide $cov(s_{jr},s_{jr'})$ by $s_{jr},s_{jr'}$
+
+
+* Further, I show that it is very close to the empirical estimation of the covariance matrix of the null Z statistics. Likewise, the true var.mat of the betahats is very close to the empirical estimate of the covariance matric of the null betahats. This can be used for future testing to make sure you've uncovered the true residual matrix. 
+  
+  
+4) In my **Posteriors** section, I show that using the `compute.quant.per.snp` and `compute.quant.per.snp.with.vmat` code produce the same results when inputting v.mat as the squared diagonalized s.j.
+
+5) Most importantly, I produce RMSE and ROC curve for both the EE and ET computed posteriors, using the diagonal and reisdual assumption, again in the setting where there exists strong correlation in the residduals. The results are perfect: when correlation existis, incorporating it is succesfully marked as both more accurate and powerful by MASH. 
+
+So there's no problem with my code!
+

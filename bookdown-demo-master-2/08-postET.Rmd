@@ -1,0 +1,54 @@
+---
+knit: bookdown::preview_chapter
+---
+
+## Posteriors With ET
+And now, let's make sure the RMSE is better. We'll use the ET now, and repeat the process in which we compare the posteriors computed using the old cold and new code with diagonals, and then 
+
+```{r,cache=T}
+covmat=lapply(s$component.mats,function(x){
+  #median(abs(s$t.stat))^2*
+  (1/0.11)^2*x})
+pis=readRDS("pist.testwitholdcode.rds")$pihat
+weightedquants=lapply(seq(1:nrow(s$betahat)),function(j){total.quant.per.snp(j,covmat,b.gp.hat=s$t.stat,se.gp.hat = s$sebetahat/s$sebetahat,pis,A="EToldcode",checkpoint = FALSE)})
+
+
+pis=readRDS("pistest.tcov2cor.rds")$pihat
+weightedquants=lapply(seq(1:nrow(s$betahat)),function(j){total.quant.per.snp.with.vmat(j,covmat,b.gp.hat=s$t.stat,var.mat = cov2cor(s$var.mat),pis,A="ETwithrealvmat",checkpoint = FALSE)})
+
+
+post.means.var.mat=as.matrix(read.table("ETwithrealvmatposterior.means.txt")[,-1])*as.matrix(s$sebetahat)
+post.means.diag.mat=as.matrix(read.table("EToldcodeposterior.means.txt")[,-1])*as.matrix(s$sebetahat)
+beta=as.matrix(s$beta)
+```
+
+And the RMSE is so much better!!!
+
+```{r}
+rmse.table=data.frame("withresidualmat"=sqrt(mean((beta[1:1000,]-post.means.var.mat[1:1000,])^2)),"diagresiduals"=sqrt(mean((beta[1:1000,]-post.means.diag.mat[1:1000,])^2)))
+barplot(as.matrix(rmse.table),names=colnames(rmse.table))
+```
+
+As are the ROC curces:
+
+```{r}
+
+lfsr.var.mat=read.table("ETwithrealvmatlfsr.txt")[,-1]
+lfsr.diag.mat=read.table("EToldcodelfsr.txt")[,-1]
+
+thresh=seq(0,0.5,by=0.01)
+fp.var.mat=NULL
+fp.diag.mat=NULL
+tp.var.mat=NULL
+tp.diag.mat=NULL
+for(t in 1:length(thresh)){
+  sig=thresh[t]
+  fp.var.mat[t]=mean(beta==0&lfsr.var.mat<sig)
+  fp.diag.mat[t]=mean(beta==0&lfsr.diag.mat<sig)
+  tp.var.mat[t]=mean(beta!=0&lfsr.var.mat<sig)
+  tp.diag.mat[t]=mean(beta!=0&lfsr.diag.mat<sig)
+}
+
+plot(fp.var.mat,tp.var.mat,type="l",col="green")
+lines(fp.diag.mat,tp.diag.mat,col="red")
+```

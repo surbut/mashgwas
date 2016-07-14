@@ -1,0 +1,24 @@
+---
+knit: bookdown::preview_chapter
+---
+
+# Testing Simulations
+
+To test the simulations are accurate, make sure that the covariance of the nulls is the same as the covariance of the errors. This should be true because under the simulation framework above,
+
+$\hat{\beta}_{null}=0+E$
+
+
+
+```{r test}
+(cov(s$betahat[401:1000,])[1:5,1:5])
+(cov(s$error[401:1000,])[1:5,1:5])
+```
+You can see they are the same. 
+
+And most importantly, we want to make sure that this resembles the *true* residual matrix since for all j, $E \sim N(0,V)$
+```{r}
+s$var.mat[1:5,1:5]
+```
+
+
