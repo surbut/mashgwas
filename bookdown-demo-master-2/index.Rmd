@@ -9,7 +9,7 @@ biblio-style: apalike
 link-citations: yes
 ---
 
-# Prerequisites
+# Goals
 
 This is to understand how MASH performs in the setting of uncorrelated errors, where we assume the $$E \sim N (0,V)$$ and $V$ is not diagonal.
 

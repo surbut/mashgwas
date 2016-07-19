@@ -2,7 +2,7 @@
 knit: bookdown::preview_chapter
 ---
 
-# Introduction {#intro}
+# Purpose
 
 The purpose of this is to test the new results with residual matrix coding, and to demonstrate that in simulationw with a known residual matrix, the likelihood is better using the correlated residuals than without.
 

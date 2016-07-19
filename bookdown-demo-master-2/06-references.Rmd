@@ -50,7 +50,8 @@ cov(s$t.stat[401:1000,])[1:5,1:5]
 cov2cor(s$var.mat)[1:5,1:5]
 ```
 
-
+ Recall that in the gtex case, I used `cor(weak.z)` to enforce that the diagonal was one: althernaively, a nice test to make sure that you've correctly chosen the qeak zs is that the diagonal of `cov(weak.z)` should be 1.
+ 
 And here we go. You'll note that **the likelihood in this case, where the residuals are highly structured, is much improved**!! Great!!!
 
 ```{r}
