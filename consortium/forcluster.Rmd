@@ -1,0 +1,250 @@
+---
+title: "ConsortiumStuff"
+output: html_document
+---
+
+Creating dataset:
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/', warning=FALSE, message=FALSE,cache=T)
+files=readRDS("~/mash_data.rds")
+library('dplyr')
+```
+
+
+```{r,eval=FALSE}
+
+duplicate_snp=which(duplicated(files$snp))
+unique_snp=files$snp[-duplicate_snp]
+sum(duplicated(files$snp))
+sum(duplicated(unique_snp))
+length(unique_snp)
+
+beta=data.frame(files[-duplicate_snp,c(1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32)],stringsAsFactors = F)
+se=data.frame(files[-duplicate_snp,c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33)],stringsAsFactors = F)
+
+sum(duplicated(beta$snp))
+
+length(intersect(beta$snp,unique_snp))/length(union(beta$snp,unique_snp))
+
+##note how I corectly skip out all the duplicated rs12186596 
+
+beta[285511:285515,c(1:5)]
+files[351046:351048,c(1:10)]
+z=beta[,-1]/se[,-1]
+beta.table=data.frame(beta[,-1],row.names=unique_snp)
+se.table=data.frame(se[,-1],row.names=unique_snp)
+z.table=data.frame(z,row.names=unique_snp)
+
+head(beta.table/se.table)[,1:5]
+head(z.table[,1:5])
+
+write.table(beta.table,"betamatched.txt")
+write.table(se.table,"se.matched.txt")
+write.table(z.table,"z.matched.txt")
+````
+
+
+Now let's proceed as in mash, selecting the 'maxes' from a set of the top 1000:
+
+```{r,eval=FALSE}
+z.stat=read.table("z.matched.txt",header = TRUE)
+
+v.j=matrix(rep(1,ncol(z.stat)*nrow(z.stat)),ncol=16,nrow=nrow(z.stat))
+max.z=cbind(z.stat,maxz=apply(z.stat,1,function(x){max(abs(x))}))
+max.z.sort=max.z[order(max.z[,"maxz"],decreasing=T),]
+###use these strongest 1000 to build covariance matrices
+maxes=max.z.sort[1:1000,-17]
+image(cor(maxes))
+
+write.table(maxes,"maxz.txt",col.names=FALSE,row.names=FALSE)
+```
+
+Now run SFA:
+
+```{r,eval=FALSE}
+#system('/Users/sarahurbut/miniconda3/bin/sfa -gen ./maxz.txt -g 1000 -n 16 -o consortiumz i -k 5')
+library('mash')
+
+factor.mat=as.matrix(read.table("consortiumz_F.out"))
+lambda.mat=as.matrix(read.table("consortiumz_lambda.out"))
+
+
+library('mash')
+library('ExtremeDeconvolution')
+
+max.z=read.table("maxz.txt")
+max.v=matrix(rep(1,ncol(max.z)*nrow(max.z)),ncol=16,nrow=nrow(max.z))
+dim(max.z)
+ms=deconvolution.em.with.bovy(max.z,factor.mat,max.v,lambda.mat,K=3,P=3)
+saveRDS(ms,"maxstepbovy.rds")
+```
+
+Now we want to compute the covariance matrices using the max step:
+```{r,eval=FALSE}
+ms=readRDS("maxstepbovy.rds")
+A="consortium"
+covmash=compute.hm.covmat.all.max.step(max.step = ms,b.hat = z.stat,se.hat = v.j,t.stat = max.z,Q = 5,lambda.mat = lambda.mat,A = "test",factor.mat = factor.mat,zero = T,power = 2)$covmat
+
+set.seed(123)
+index=sample(1:nrow(z.stat),50000,replace=F)
+write.table(index,"index.txt")
+
+index=read.table("index.txt")[,1]
+
+train.t=z.stat[index,]
+se.train=v.j[index,]
+
+
+
+compute.hm.train.log.lik.pen(train.b = train.t,se.train = se.train,covmat = covmash,A=A,pen=1)
+
+```
+
+Let's examine the patterns of covariance and the hierarchical weights and any patterns of tissue specificity.
+
+Let's look at the covariance patterns captured.  
+```{r covmats, echo=FALSE}
+library('mash')
+A="consortium"
+covmat=readRDS("covmatconsortium.rds")
+pis=readRDS(paste0("pis",A,".rds"))$pihat
+pi.mat=data.frame(matrix(pis[-length(pis)],ncol=17+9,byrow=TRUE))
+
+z.stat=read.table("z.matched.txt",header=TRUE)
+post.means=read.table("allmeans.txt")[,-1]
+lfsr.mash=read.table("giant3lfsr.txt")[,-1]
+lfsr=lfsr.mash
+names=unlist(lapply(colnames(z.stat),function(x){strsplit(x,"_")[[1]][2]}))
+colnames(post.means)=colnames(lfsr.mash)=colnames(lfsr)=names
+colnames(pi.mat)=c("ID","X'X","SVD","F1","F2","F3","F4","F5","SFA_Rank5",c(names,"ALL"))
+
+barplot(colSums(pi.mat),main='MASH',las=2)
+
+
+j=1000
+k=3
+cov=covmat
+b.test=z.stat
+se.test=matrix(rep(1,ncol(b.test)*nrow(b.test)),nrow(b.test),ncol=ncol(b.test))
+
+
+b.mle=as.vector(t(b.test[j,]))##turn i into a R x 1 vector
+V.gp.hat=diag(se.test[j,])^2
+V.gp.hat.inv <- solve(V.gp.hat)
+all.arrays=post.array.per.snp(j=j,covmat = cov,b.gp.hat = b.test,se.gp.hat = se.test)
+
+
+U.gp1kl <- (post.b.gpkl.cov(V.gp.hat.inv, cov[[k]]))
+mu.gp1kl <- as.array(post.b.gpkl.mean(b.mle, V.gp.hat.inv, U.gp1kl))
+#(all.arrays$post.means[k,])
+all.equal(as.numeric(all.arrays$post.means[k,]),as.numeric(mu.gp1kl))
+all.equal(as.numeric(all.arrays$post.covs[k,]),as.numeric(diag(U.gp1kl)))
+##Now, check to make sure weighting is correct
+
+
+log.lik.snp=log.lik.func(b.mle,V.gp.hat,cov)
+log.lik.minus.max=log.lik.snp-max(log.lik.snp)
+#log.pi=log(pis)
+#s=log.lik.minus.max+log.pi
+exp.vec=exp(log.lik.minus.max)
+post.weights=t(exp.vec*pis/sum(exp.vec*pis))
+all.equal(as.numeric(post.means[j,]),as.numeric(post.weights%*%all.arrays$post.means))
+
+##Check LFSR for a given tissue
+
+r=3
+
+pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = FALSE)## and so an LFSR of 0.02 makes perfect sense because post.weight at this component is 0.98.
+#show that this is in the array correctly
+all.arrays$post.ups[k,r]
+
+pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = T)## and so an LFSR of 0.02 makes perfect sense because post.weight at this component is 0.98.
+#show that this is in the array correctly
+all.arrays$post.downs[k,r]
+
+plot(as.matrix(lfsr.mash[j,]),as.matrix(apply(rbind(post.weights%*%all.arrays$post.ups,post.weights%*%all.arrays$post.downs),2,function(x){1-max(x)})))
+
+```
+
+We can see that `r sum(colSums(pi.mat[,1:9]))` proportion of the prior weight is assigned to the learned matrices. Looks good!
+
+```{r,echo=FALSE,eval=T}
+library(gplots)
+library(ggplot2)
+for(k in 2:9){
+
+  x=cov2cor(covmat[[k]])/max(diag(cov2cor(covmat[[k]])))
+  colnames(x)=colnames(lfsr)
+  rownames(x)=colnames(lfsr)
+heatmap.2(x,symm=T,dendrogram="none",density="none",trace="none",col=redblue(256),main=paste0("HeatMapofNormalizedofCov2CorU",k),cexRow=1,cexCol=1,symbreaks=T,symkey = T)
+}
+ 
+
+for(k in 2:9){
+
+  x=covmat[[k]]
+  colnames(x)=colnames(lfsr)
+  rownames(x)=colnames(lfsr)
+heatmap.2(x/max(diag(covmat[[k]])),symm=T,dendrogram="none",density="none",trace="none",col=redblue(256),main=paste0("HeatMapofNormalizedU",k),cexRow=1,cexCol=1,symbreaks=T,symkey = T)
+}
+
+# 
+# for(k in 2:9){
+#    ifile <- paste0(k,'_allheatmaps.png')
+#     pdf(ifile)
+#   x=covmat[[k]]
+#   colnames(x)=colnames(z.stat)
+#   rownames(x)=colnames(z.stat)
+# heatmap.2(x/max(diag(covmat[[k]])),Rowv=FALSE,Colv=FALSE,symm=TRUE,dendrogram="none",density="none",trace="none",col=redblue(256),main=paste0("HeatMapofNormalizedUk",k),cexRow=0.5,cexCol=0.5,symbreaks=T,key=ifelse(k==2,TRUE,FALSE),cex)
+# dev.off()
+
+# }
+# 
+# system('montage -geometry 100% -tile 3x3 ./*_allheatmaps.png ./kushalcompiledheatmaps.png')
+
+
+# for(i in 2:9){
+#    ifile <- paste0(i,'_eigen.png')
+#     pdf(ifile)
+for(i in c(2:9)){
+  
+v=svd(covmat[[i]])$v
+  colnames(v)=rownames(v)=colnames(lfsr)
+max.effect=sign(v[,1][which.max(abs(v[,1]))])
+barplot(max.effect*v[,1],las=2,main=paste0("EigenVector1ofUk=",i),col=i-1,cex.names=0.5)
+
+#dev.off()
+}
+# system('montage -geometry 100% -tile 3x3 ./*_eigen.png ./compiledeigen.png')
+
+
+```
+
+
+Do we see patterns of specificity? It appears that specificity to one subgroup is very rare, since the correlation structure is so rich. IN fact, only cystein stands out. 
+
+
+```{r,echo=FALSE}
+
+plot_ts=function(tissuename,lfsr,curvedata,thresh=0.05,subset=1:44){
+  index_tissue=which(colnames(lfsr) %in% tissuename);
+
+  ##create a matrix showing whether or not lfsr satisfies threshold
+  sigmat = lfsr <= thresh;
+  sigs=which(rowSums(sigmat[,index_tissue,drop=FALSE])==length(tissuename) & rowSums(sigmat[,-index_tissue,drop=FALSE])==0)
+  
+   iplotCurves(curvedata[sigs,subset],chartOpts=list(curves_xlab="Tissue",curves_ylab="curvedata"))}
+
+
+
+
+thresh=0.05
+dist=as.matrix(lfsr)<=thresh
+
+ones=which(rowSums(dist)==1)
+#plot tspec
+barplot(apply(lfsr[which(rowSums(lfsr<=thresh)==1),],2,function(x){sum(x<=thresh)}),las=2,main=paste0("Number of SNPs with LFSR<",0.05," in Single subgroup"),cex.names=0.5)
+```
+
+How many associations do we call significant at an LFSR of 0.05? `r sum(lfsr.mash<0.05)` which is `r mean(lfsr.mash<0.05)` part of the data. When we plot t-spec by subgroup, we see that subgroup specific effects are rare and of small magnitude because of the sharing among tissues for a given fold change difference.

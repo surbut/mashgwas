@@ -1,0 +1,102 @@
+---
+title: "ConsortiumStuff"
+output: html_document
+---
+
+Creating dataset:
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/', warning=FALSE, message=FALSE,cache=T)
+files=readRDS("~/Dropbox/mash_data.rds")
+library('dplyr')
+```
+
+
+```{r,echo=F,eval=FALSE}
+
+duplicate_snp=which(duplicated(files$snp))
+unique_snp=files$snp[-duplicate_snp]
+sum(duplicated(files$snp))
+sum(duplicated(unique_snp))
+length(unique_snp)
+
+beta=data.frame(files[-duplicate_snp,c(1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32)],stringsAsFactors = F)
+se=data.frame(files[-duplicate_snp,c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33)],stringsAsFactors = F)
+
+sum(duplicated(beta$snp))
+
+length(intersect(beta$snp,unique_snp))/length(union(beta$snp,unique_snp))
+
+##note how I corectly skip out all the duplicated rs12186596 
+
+beta[285511:285515,c(1:5)]
+files[351046:351048,c(1:10)]
+z=beta[,-1]/se[,-1]
+beta.table=data.frame(beta[,-1],row.names=unique_snp)
+se.table=data.frame(se[,-1],row.names=unique_snp)
+z.table=data.frame(z,row.names=unique_snp)
+
+head(beta.table/se.table)[,1:5]
+head(z.table[,1:5])
+
+write.table(beta.table,"betamatched.txt")
+write.table(se.table,"se.matched.txt")
+write.table(z.table,"z.matched.txt")
+````
+
+
+Now let's proceed as in mash, selecting the 'maxes' from a set of the top 1000:
+
+```{r}
+z.stat=read.table("z.matched.txt",header = TRUE)
+
+v.j=matrix(rep(1,ncol(z.stat)*nrow(z.stat)),ncol=16,nrow=nrow(z.stat))
+max.z=cbind(z.stat,maxz=apply(z.stat,1,function(x){max(abs(x))}))
+max.z.sort=max.z[order(max.z[,"maxz"],decreasing=T),]
+###use these strongest 1000 to build covariance matrices
+maxes=max.z.sort[1:1000,-17]
+image(cor(maxes))
+
+write.table(maxes,"maxz.txt",col.names=FALSE,row.names=FALSE)
+```
+
+Now run SFA:
+
+```{r}
+system('/Users/sarahurbut/miniconda3/bin/sfa -gen ./maxz.txt -g 1000 -n 16 -o consortiumz i -k 5')
+library('mash')
+
+factor.mat=as.matrix(read.table("consortiumz_F.out"))
+lambda.mat=as.matrix(read.table("consortiumz_lambda.out"))
+
+
+library('mash')
+library('ExtremeDeconvolution')
+
+max.z=read.table("maxz.txt")
+max.v=matrix(rep(1,ncol(max.z)*nrow(max.z)),ncol=16,nrow=nrow(max.z))
+dim(max.z)
+ms=deconvolution.em.with.bovy(max.z,factor.mat,max.v,lambda.mat,K=3,P=3)
+saveRDS(ms,"maxstepbovy.rds")
+```
+
+Now we want to compute the covariance matrices using the max step:
+```{r}
+A="consortium"
+covmash=compute.hm.covmat.all.max.step(max.step = ms,b.hat = z.stat,se.hat = v.j,t.stat = max.z,Q = 5,lambda.mat = lambda.mat,A = "consortium",factor.mat = factor.mat,zero = T,power = 2)$covmat
+
+set.seed(123)
+index=sample(1:nrow(z.stat),50000,replace=F)
+write.table(index,"index.txt")
+
+index=read.table("index.txt")[,1]
+
+train.t=z.stat[index,]
+se.train=v.j[index,]
+
+
+
+compute.hm.train.log.lik.pen(train.b = train.t,se.train = se.train,covmat = covmash,A=A,pen=1)
+
+```
+

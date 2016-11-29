@@ -17,3 +17,5 @@ gh-pages
 *liketrain*
 *liketest*
 *.Rapp.hi*
+*/Figs/*
+Data/*

@@ -18,3 +18,5 @@ gh-pages
 *liketest*
 *.Rapp.hi*
 */Figs/*
+Data/*
+consortium/*.txt
