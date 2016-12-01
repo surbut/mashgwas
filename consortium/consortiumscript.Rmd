@@ -229,7 +229,8 @@ v=svd(covmat[[i]])$v
 ```
 
 
-Do we see patterns of specificity? It appears that specificity to one subgroup is very rare, since the correlation structure is so rich. Of note, schizophrenia and height stand out.
+Do we see patterns of specificity? It appears that specificity to one subgroup is very rare, since the correlation structure is so rich. Of note, schizophrenia and height stand out. 
+Let's look at tissue specific:
 
 
 ```{r,echo=FALSE}
@@ -267,4 +268,23 @@ dim(ashlfsr)
 
 sum(ashlfsr<0.05)
 mean(ashlfsr<0.05)
+```
+
+
+```{r eval=FALSE}
+colnames(lfsr.mash)=names
+rownames(lfsr.mash)=rownames(z.stat)
+dist=lfsr.mash<0.05;
+lapply(seq(1:ncol(lfsr.mash)),function(x){a=rownames(lfsr.mash)[which(rowSums(dist)==1&lfsr.mash[,x]<0.05)];write.table(a,paste0("../Data/traitspec/traitspec",colnames(lfsr.mash)[x],".txt"))})
+
+
+lapply(seq(1:ncol(lfsr.mash)),function(x){a=rownames(lfsr.mash)[which(lfsr.mash[,x]<0.05)];write.table(a,paste0("../Data/significant/",colnames(lfsr.mash)[x],"significantin.txt"))})
+```
+
+As an example confirmation, https://www.snpedia.com/index.php/Rs1042725 found nature SNP rs1042725 is associated with height (P = 4E-8) in a study involving over 20,000 individuals.rs6060369 was also confirmed.
+
+Let's see how many SNPS per trait:
+
+```{r}
+barplot(colSums(lfsr.mash<0.05),main="Number of Snps Significant at LFSR<0.05")
 ```
