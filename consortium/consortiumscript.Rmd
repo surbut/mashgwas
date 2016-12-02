@@ -295,6 +295,7 @@ Let's generate the top SNPs per trait:
 ```{r}
 colnames(lfsr.mash)=names
 rownames(lfsr.mash)=rownames(z.stat)
-as.matrix(apply(lfsr.mash,2,function(x){(rownames(lfsr.mash)[order(x,decreasing=F)][1:10])}))
-
+data.frame(apply(lfsr.mash,2,function(x){(rownames(lfsr.mash)[order(x,decreasing=F)][1:10])}))
+write.table(data.frame(apply(lfsr.mash,2,function(x){(rownames(lfsr.mash)[order(x,decreasing=F)][1:10])}))
+,"top10pertrait.txt")
 ```
