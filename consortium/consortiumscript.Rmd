@@ -163,7 +163,7 @@ pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = T)## and so 
 #show that this is in the array correctly
 all.arrays$post.downs[k,r]
 
-plot(as.matrix(lfsr.mash[j,]),as.matrix(apply(rbind(post.weights%*%all.arrays$post.ups,post.weights%*%all.arrays$post.downs),2,function(x){1-max(x)})))
+#plot(as.matrix(lfsr.mash[j,]),as.matrix(apply(rbind(post.weights%*%all.arrays$post.ups,post.weights%*%all.arrays$post.downs),2,function(x){1-max(x)})))
 
 ```
 
@@ -281,10 +281,20 @@ lapply(seq(1:ncol(lfsr.mash)),function(x){a=rownames(lfsr.mash)[which(rowSums(di
 lapply(seq(1:ncol(lfsr.mash)),function(x){a=rownames(lfsr.mash)[which(lfsr.mash[,x]<0.05)];write.table(a,paste0("../Data/significant/",colnames(lfsr.mash)[x],"significantin.txt"))})
 ```
 
+##Confirmation of Results##
 As an example confirmation, https://www.snpedia.com/index.php/Rs1042725 found nature SNP rs1042725 is associated with height (P = 4E-8) in a study involving over 20,000 individuals.rs6060369 was also confirmed.
 
 Let's see how many SNPS per trait:
 
 ```{r}
 barplot(colSums(lfsr.mash<0.05),main="Number of Snps Significant at LFSR<0.05")
+```
+
+Let's generate the top SNPs per trait:
+
+```{r}
+colnames(lfsr.mash)=names
+rownames(lfsr.mash)=rownames(z.stat)
+as.matrix(apply(lfsr.mash,2,function(x){(rownames(lfsr.mash)[order(x,decreasing=F)][1:10])}))
+
 ```
