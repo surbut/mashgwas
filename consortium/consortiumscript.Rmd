@@ -12,7 +12,7 @@ library('dplyr')
 ```
 
 
-```{r,eval=FALSE}
+```{r,eval=FALSE,echo=FALSE}
 
 duplicate_snp=which(duplicated(files$snp))
 unique_snp=files$snp[-duplicate_snp]
@@ -176,25 +176,30 @@ library(ggplot2)
 library('colorRamps')
 #install.packages("fields")
 library(fields)
-for(k in 2:9){
-
-  x=cov2cor(covmat[[k]])/max(diag(cov2cor(covmat[[k]])))
-    colnames(x)=colnames(lfsr)
-      rownames(x)=colnames(lfsr)
-      heatmap.2(x,symm=T,dendrogram="none",density="none",trace="none",col=redblue(256),main=paste0("HeatMapofNormalizedofCov2CorU",k),cexRow=1,cexCol=1,symbreaks=T,symkey = T)
+for(k in c(2,3,9)){
+ 
+  x=cov2cor(abs(covmat[[k]]))/abs(max(diag(cov2cor(covmat[[k]]))))
+x[lower.tri(x)] <- NA
+colnames(x)=rownames(x)=colnames(z.stat)
+      heatmap.2(x,#symm=T,
+                dendrogram="none",density="none",trace="none",col=blue2green,Rowv=FALSE,Colv=FALSE,
+                main=paste0("HeatMapofNormalizedofCov2CorU",k),
+                cexRow=1,cexCol=1,
+                breaks=seq(0,1,by=0.01)
+                )
       }
 
-smat=cov2cor(covmat[[k]])
-smat[lower.tri(smat)] <- NA
-colnames(smat)=rownames(smat)=colnames(z.stat)
-
-heatmap.2(smat,#symm=TRUE,
-          Rowv=FALSE,Colv=FALSE,
-          dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green(256),
-          main=paste0("Cov2CorUk2"),
-          cexRow=0.5,cexCol=0.5,cex.main=0.5)
-
+# smat=abs(cov2cor(covmat[[k]]))
+# smat[lower.tri(smat)] <- NA
+# colnames(smat)=rownames(smat)=colnames(z.stat)
+# 
+# heatmap.2(smat,#symm=TRUE,
+#           Rowv=FALSE,Colv=FALSE,
+#           dendrogram="none",density="none",trace="none",#col=redblue,
+#           col=blue2green(256),
+#           main=paste0("Cov2CorUk2"),
+#           cexRow=0.5,cexCol=0.5,cex.main=0.5)
+# 
 #
 # for(k in 2:9){
 #    ifile <- paste0(k,'_allheatmaps.png')
@@ -299,3 +304,49 @@ data.frame(apply(lfsr.mash,2,function(x){(rownames(lfsr.mash)[order(x,decreasing
 write.table(data.frame(apply(lfsr.mash,2,function(x){(rownames(lfsr.mash)[order(x,decreasing=F)][1:10])}))
 ,"top10pertrait.txt")
 ```
+ 
+ Let's show how this integrates with the GTEX results:
+```{r, topsnpinschizo}
+ 
+topten=read.table("top10pertrait.txt",header=T,stringsAsFactors = F)
+topten[1,"scz"]
+```
+
+Is an eQTL in Brain, Frontal Cortex [as shown here in the GteX browser](http://www.gtexportal.org/home/eqtls/bySnp?snpId=rs10484439&tissueName=Brain_Frontal_Cortex_BA9) representing a possible link to disease.
+
+Now, we'd like to add pairwise sharing by magnitude and sign:
+
+```{r pairwisesharing}
+library("mashr")
+se.matched=as.matrix(read.table("se.matched.txt"))
+pm.mash.beta=post.means*se.matched
+
+lfsr.mash.sig=lfsr.mash[rowSums(lfsr.mash<0.05)>0,]##only 137,223 are significant in at least one subgroup
+pm.mash.sig=pm.mash.beta[rowSums(lfsr.mash<0.05)>0,]
+
+signheatmap=compute.sharing.by.sign(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.mash.beta = pm.mash.sig)
+signheatmap[lower.tri(signheatmap)] <- NA
+magheatmap=compute.mag.by.sharing(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.mash.beta = pm.mash.sig)
+magheatmap[lower.tri(magheatmap)] <- NA
+
+
+library('colorRamps')
+library('corrplot')
+library(gplots)
+library(ggplot2)
+
+class(signheatmap)
+
+
+heatmap.2(signheatmap,Rowv=FALSE,Colv=FALSE,
+          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+          col=blue2green,main=paste0("Pairwise Sharing by Sign"),
+          cexRow=0.6,cexCol=2,cex.main=0.5,breaks=seq(0.7,1,0.01),
+          labCol=NA)
+
+
+heatmap.2(magheatmap,Rowv=FALSE,Colv=FALSE,
+          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+          col=blue2green,main=paste0("Pairwise Sharing by Magnitude"),
+          cexRow=0.6,cexCol=2,cex.main=0.5,#breaks=seq(0.35,1,0.01),
+          labCol=NA)
