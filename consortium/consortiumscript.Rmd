@@ -280,10 +280,21 @@ mean(ashlfsr<0.05)
 colnames(lfsr.mash)=names
 rownames(lfsr.mash)=rownames(z.stat)
 dist=lfsr.mash<0.05;
-lapply(seq(1:ncol(lfsr.mash)),function(x){a=rownames(lfsr.mash)[which(rowSums(dist)==1&lfsr.mash[,x]<0.05)];write.table(a,paste0("../Data/traitspec/traitspec",colnames(lfsr.mash)[x],".txt"))})
+lapply(seq(1:ncol(lfsr.mash)),function(x){
+  a=rownames(lfsr.mash)[which(rowSums(dist)==1&lfsr.mash[,x]<0.05)];
+  lfsr.val=lfsr.mash[a,x]
+  df=data.frame(lfsr.mash[a,x])
+  rownames(df)=a
+  write.table(df,paste0("../Data/traitspec/traitspec",colnames(lfsr.mash)[x],".txt"))})
+
+lapply(seq(1:ncol(lfsr.mash)),function(x){
+  a=rownames(lfsr.mash)[which(lfsr.mash[,x]<0.05)];
+  lfsr.val=lfsr.mash[a,x]
+  df=data.frame(lfsr.mash[a,x])
+  rownames(df)=a
+  write.table(df,paste0("../Data/significant/",colnames(lfsr.mash)[x],"significantin.txt"))})
 
 
-lapply(seq(1:ncol(lfsr.mash)),function(x){a=rownames(lfsr.mash)[which(lfsr.mash[,x]<0.05)];write.table(a,paste0("../Data/significant/",colnames(lfsr.mash)[x],"significantin.txt"))})
 ```
 
 ##Confirmation of Results##
