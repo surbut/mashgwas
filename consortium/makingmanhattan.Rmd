@@ -1,0 +1,75 @@
+---
+title: "Manhattatin Plotting"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+source("https://bioconductor.org/biocLite.R")
+biocLite("SNPlocs.Hsapiens.dbSNP141.GRCh38")
+library(SNPlocs.Hsapiens.dbSNP141.GRCh38)
+library(devtools)
+install_github("stephenturner/qqman")
+```
+
+```{r}
+file.list=list.files(path="../Data/significant/",pattern = "in")
+for(i in 12:length(file.list)){
+dat=read.table(paste0("../Data/significant/",file.list[i]))
+##
+
+rsid = rownames(dat)
+snps = snpid2loc(SNPlocs.Hsapiens.dbSNP141.GRCh38, rsid)
+chroms = gsub('ch([0-9]+)','\\1', names(snps))
+positions = as.character(snps)
+dat = as.data.frame(cbind(rsid, chroms, positions, dat[,1]))
+colnames(dat) = c('SNP', 'CHR', 'BP', 'P')
+dat$CHR = as.numeric(as.character(dat$CHR))
+dat$BP = as.numeric(as.character(dat$BP))
+dat$P = as.numeric(as.character(dat$P))
+dat$P[which(dat$P == 0)] = 1E-50
+bad=which(dat$P<0)
+dat$P[bad]=0
+plotname=strsplit2(file.list,split = "significant")[[1]][1]
+pdf(paste0(plotname,".pdf"))
+qqman::manhattan(dat,ylim=c(0,10),main=plotname)
+dev.off()
+
+}
+
+```
+
+However, for some traits (like height) this doesn't work:
+```{r}
+i=11
+dat=read.table(paste0("../Data/significant/",file.list[i]))
+
+dat2=dat[-52062,]
+df=data.frame(dat2)
+rownames(df)=rownames(dat)[-52602]
+snpsById(x, rownames(df), ifnotfound="warning") #now test to show it doesn't works
+
+snps = snpid2loc(SNPlocs.Hsapiens.dbSNP141.GRCh38, rownames(dat))
+
+snps = snpsById(SNPlocs.Hsapiens.dbSNP141.GRCh38, rownames(dat), 
+   ifnotfound = 'warning')
+chroms = as.character(sapply(snps, function(x) x@seqnames@values))
+chroms = gsub('ch([0-9]+)','\\1', chroms)
+positions = as.character(sapply(snps, function(x) x@ranges@start))
+
+#chroms = gsub('ch([0-9]+)','\\1', names(snps))
+dat = as.data.frame(cbind(rownames(df), chroms, positions,df[,1]))
+colnames(dat) = c('SNP', 'CHR', 'BP', 'P')
+dat$CHR = as.numeric(as.character(dat$CHR))
+dat$BP = as.numeric(as.character(dat$BP))
+dat$P = as.numeric(as.character(dat$P))
+dat$P[which(dat$P == 0)] = 1E-50
+bad=which(dat$P<0)
+dat$P[bad]=0
+plotname=strsplit(file.list[i],split = "significant",fixed = TRUE)[[1]][1]
+write.table(dat,"heightdat.txt")
+pdf(paste0(plotname,".pdf"))
+qqman::manhattan(dat,ylim=c(0,20),main=plotname)
+dev.off()

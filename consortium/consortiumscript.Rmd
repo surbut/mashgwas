@@ -6,7 +6,7 @@ output: html_document
 Creating dataset:
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/', warning=FALSE, message=FALSE,cache=T)
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='~/Dropbox/PhDthesis/Figures/', warning=FALSE, message=FALSE,cache=T)
 files=readRDS("~/Dropbox/mash_data.rds")
 library('dplyr')
 ```
@@ -165,6 +165,22 @@ all.arrays$post.downs[k,r]
 
 #plot(as.matrix(lfsr.mash[j,]),as.matrix(apply(rbind(post.weights%*%all.arrays$post.ups,post.weights%*%all.arrays$post.downs),2,function(x){1-max(x)})))
 
+covmat=readRDS("../Data/covmatconsortium.rds")
+
+for(i in 2:9){
+   ifile <- paste0(i,'_eigen.png')
+    pdf(ifile)
+#for(i in c(2:9)){
+x=cov2cor(covmat[[i]]) 
+v=svd(x)$v
+
+  colnames(v)=rownames(v)=names
+max.effect=sign(v[,1][which.max(abs(v[,1]))])
+barplot(max.effect*v[,1],las=2,main=paste0("EigenVector1ofUk=",i),col=i-1,cex.names=2)
+
+dev.off()
+}
+system('montage -geometry 100% -tile 3x3 ./*_eigen.png ~/Dropbox/PhDThesis/Figures/compiledeigenconsortium.png')
 ```
 
 We can see that `r sum(colSums(pi.mat[,1:9]))` proportion of the prior weight is assigned to the learned matrices. Looks good!
@@ -221,7 +237,7 @@ colnames(x)=rownames(x)=colnames(z.stat)
 for(i in c(2:9)){
 
 v=svd(covmat[[i]])$v
-  colnames(v)=rownames(v)=colnames(lfsr)
+  colnames(v)=rownames(v)=names
   max.effect=sign(v[,1][which.max(abs(v[,1]))])
   barplot(v[,1]/v[,1][which.max(abs(v[,1]))],cex.names=1.0,las=2,main=paste0("EigenVector1ofUk=",i))
   #barplot(max.effect*v[,1],las=2,main=paste0("EigenVector1ofUk=",i),col=i-1,cex.names=0.5)

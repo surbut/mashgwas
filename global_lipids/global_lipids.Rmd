@@ -4,7 +4,7 @@ output: html_document
 Creating dataset:
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/', warning=FALSE, message=FALSE,cache=T)
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='~/Dropbox/PhDThesis/Figures/', warning=FALSE, message=FALSE,cache=T)
 ```
 
 
@@ -49,7 +49,7 @@ head(se_matched)
 s=na.omit(se_matched)
 
 
-sm=data.frame(list(uniqegenes,se_matched),stringsAsFactors = F)
+sm=data.frame(list(uniqegenes,sm),stringsAsFactors = F)
 write.table(sm,"globallipids_sehat.txt",col.names=T)##matrix of standardized standarderrors
 
 b.hat=na.omit(read.table("globallipids_betahat.txt",header=TRUE))
@@ -280,19 +280,19 @@ colnames(z.stat)=c("HDL","LDL","TC","TG")
 # system('montage -geometry 100% -tile 3x3 ./*_allheatmaps.png ./lipiddatacompiledheatmaps.png')
 
 # 
-# for(i in 2:9){
-#    ifile <- paste0(i,'_eigen.png')
-#     pdf(ifile)
-# #for(i in c(2:9)){
-#   
-# v=svd(covmat[[i]])$v
-#   colnames(v)=rownames(v)=colnames(z.stat)
-# max.effect=sign(v[,1][which.max(abs(v[,1]))])
-# barplot(max.effect*v[,1],las=2,main=paste0("EigenVector1ofUk=",i),col=i-1,cex.names=2)
-# 
-# dev.off()
-# }
-# system('montage -geometry 100% -tile 3x3 ./*_eigen.png ./compiledeigen.png')
+for(i in 2:9){
+   ifile <- paste0(i,'_eigen.png')
+    pdf(ifile)
+#for(i in c(2:9)){
+  
+v=svd(covmat[[i]])$v
+  colnames(v)=rownames(v)=colnames(z.stat)
+max.effect=sign(v[,1][which.max(abs(v[,1]))])
+barplot(max.effect*v[,1],las=2,main=paste0("EigenVector1ofUk=",i),col=i-1,cex.names=2)
+
+dev.off()
+}
+system('montage -geometry 100% -tile 3x3 ./*_eigen.png ~/Dropbox/PhDThesis/Figures/compiledeigen.png')
 # 
 # }#main=ifelse(i!=5,paste0("EigenVector1ofUk=",i),""),ylab=ifelse(i==5,paste0("EigenVector1ofUk=",i),""),
 #        # col=i-1,axisnames=ifelse(i==2,TRUE,FALSE),cex.names=ifelse(i==2,0.4,NULL))
@@ -346,3 +346,58 @@ plot_ts("TC",lfsr=lfsr,curvedata=post.means,thresh=0.05,subset=1:4)
 ```{r,cache=F}
 plot_ts("TG",lfsr=lfsr,curvedata=post.means,thresh=0.05,subset=1:4)
 ```
+
+```{r pairwisesharing_globallipids}
+library("mashr")
+post.means=as.matrix(read.table("lipid_data_signedzposterior.means.txt")[,-1])
+lfsr.mash=as.matrix(read.table("lipid_data_signedzlfsr.txt"))[,-1]
+
+se.matched=na.omit(read.table("globallipids_sehat.txt",header = T,stringsAsFactors = F)[,-1])
+strain.names=c("TG","TC","LDL","HDL")
+pm.mash.beta=post.means*se.matched
+colnames(pm.mash.beta)=colnames(lfsr.mash)=strain.names
+lfsr.mash.sig=lfsr.mash[rowSums(lfsr.mash<0.05)>0,]##only 137,223 are significant in at least one subgroup
+pm.mash.sig=pm.mash.beta[rowSums(lfsr.mash<0.05)>0,]
+
+signheatmap=compute.sharing.by.sign(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.mash.beta = pm.mash.sig)
+signheatmap[lower.tri(signheatmap)] <- NA
+magheatmap=compute.mag.by.sharing(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.mash.beta = pm.mash.sig)
+magheatmap[lower.tri(magheatmap)] <- NA
+
+
+library('colorRamps')
+library('corrplot')
+library(gplots)
+library(ggplot2)
+
+class(signheatmap)
+
+
+
+library('lattice')
+
+clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
+                               "#E0F3F8","#91BFDB","#4575B4")))(64)
+#clrs[63:64] <- "darkviolet"
+lat=signheatmap
+lat[lower.tri(lat)] <- NA
+print(levelplot(lat,col.regions = clrs,xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingBySign"))
+
+
+heatmap.2(magheatmap,Rowv=FALSE,Colv=FALSE,
+          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+          col=blue2green,main=paste0("Pairwise Sharing by Magnitude"),
+          cexRow=0.6,cexCol=2,cex.main=0.5,#breaks=seq(0.35,1,0.01),
+          labCol=NA)
+
+library('lattice')
+
+clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
+                               "#E0F3F8","#91BFDB","#4575B4")))(64)
+#clrs[63:64] <- "darkviolet"
+absmagheatmap=compute.mag.by.sharing(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.mash.beta = abs(pm.mash.sig))
+absmagheatmap[lower.tri(absmagheatmap)] <- NA
+lat=absmagheatmap
+lat[lower.tri(lat)] <- NA
+print(levelplot(lat,col.regions = clrs,
+                xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingByMagnitude"))
