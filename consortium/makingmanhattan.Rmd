@@ -19,10 +19,20 @@ file.list=list.files(path="../Data/significant/",pattern = "in")
 for(i in 12:length(file.list)){
 dat=read.table(paste0("../Data/significant/",file.list[i]))
 ##
-
+rsid = rownames(dat)[1:5]
+snps = snpid2loc(SNPlocs.Hsapiens.dbSNP141.GRCh38, rsid)
+dat = read.table('datafile.txt')
 rsid = rownames(dat)
 snps = snpid2loc(SNPlocs.Hsapiens.dbSNP141.GRCh38, rsid)
 chroms = gsub('ch([0-9]+)','\\1', names(snps))
+positions = as.character(snps)
+dat = as.data.frame(cbind(rsid, chroms, positions, dat[,1]))
+colnames(dat) = c('SNP', 'CHR', 'BP', 'P')
+dat$CHR = as.numeric(as.character(dat$CHR))
+dat$BP = as.numeric(as.character(dat$BP))
+dat$P = as.numeric(as.character(dat$P))
+dat$P[which(dat$P == 0)] = 1E-50
+qchroms = gsub('ch([0-9]+)','\\1', names(snps))
 positions = as.character(snps)
 dat = as.data.frame(cbind(rsid, chroms, positions, dat[,1]))
 colnames(dat) = c('SNP', 'CHR', 'BP', 'P')
@@ -69,7 +79,12 @@ dat$P[which(dat$P == 0)] = 1E-50
 bad=which(dat$P<0)
 dat$P[bad]=0
 plotname=strsplit(file.list[i],split = "significant",fixed = TRUE)[[1]][1]
-write.table(dat,"heightdat.txt")
+read.table(dat,"manhheightdat.txt")
 pdf(paste0(plotname,".pdf"))
 qqman::manhattan(dat,ylim=c(0,20),main=plotname)
 dev.off()
+
+
+system('montage -geometry 100% -tile 4x4 manhattanplots/*.pdf ~/Dropbox/PhDThesis/Figures/compiledmanhattan.png')
+```
+

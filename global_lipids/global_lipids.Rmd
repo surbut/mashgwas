@@ -378,10 +378,33 @@ library('lattice')
 
 clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
                                "#E0F3F8","#91BFDB","#4575B4")))(64)
+
+
+# FOCUS PALETTES
+# Red as highlight
+redfocus = c("#CB181D", "#252525", "#525252", "#737373", "#969696", "#BDBDBD", "#D9D9D9", "#F0F0F0")
+ 
+# Green as highlight
+greenfocus = c("#41AB5D", "#252525", "#525252", "#737373", "#969696", "#BDBDBD", "#D9D9D9", "#F0F0F0")
+ 
+# Blue as highlight
+bluefocus = c("#0033FF", "#252525", "#525252", "#737373", "#969696", "#BDBDBD", "#D9D9D9", "#F0F0F0")
+
+redmono = c("#99000D", "#CB181D", "#EF3B2C", "#FB6A4A", "#FC9272", "#FCBBA1", "#FEE0D2", "#FFF5F0")
+greenmono = c("#005A32", "#238B45", "#41AB5D", "#74C476", "#A1D99B", "#C7E9C0", "#E5F5E0", "#F7FCF5")
+bluemono = c("#084594", "#2171B5", "#4292C6", "#6BAED6", "#9ECAE1", "#C6DBEF", "#DEEBF7", "#F7FBFF")
+grey8mono = c("#000000","#252525", "#525252", "#737373", "#969696", "#BDBDBD", "#D9D9D9", "#F0F0F0")
+grey6mono = c("#242424", "#494949", "#6D6D6D", "#929292", "#B6B6B6", "#DBDBDB")
+library(RColorBrewer)
+p=colorRampPalette(brewer.pal(9,"Blues"))(100)
+g=colorRampPalette(brewer.pal(9,"Greens"))(100)
+
+
+clrs=redblue
 #clrs[63:64] <- "darkviolet"
 lat=signheatmap
 lat[lower.tri(lat)] <- NA
-print(levelplot(lat,col.regions = clrs,xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingBySign"))
+print(levelplot(lat,col.regions = p,xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingBySign"))
 
 
 heatmap.2(magheatmap,Rowv=FALSE,Colv=FALSE,
@@ -399,5 +422,5 @@ absmagheatmap=compute.mag.by.sharing(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.
 absmagheatmap[lower.tri(absmagheatmap)] <- NA
 lat=absmagheatmap
 lat[lower.tri(lat)] <- NA
-print(levelplot(lat,col.regions = clrs,
+print(levelplot(lat,col.regions = g,
                 xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingByMagnitude"))
