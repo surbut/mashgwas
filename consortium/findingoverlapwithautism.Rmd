@@ -1,0 +1,51 @@
+---
+title: "intersectionautism"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+# library(BiocInstaller)
+# biocLite("GenomicRanges")
+library("GenomicRanges")
+##
+atable=read.table("~/Downloads/gwas-association-downloaded_2017-02-24-autism.tsv",sep="\t",header = T,
+                  stringsAsFactors = FALSE)
+atable <- atable[, c("DATE.ADDED.TO.CATALOG", "SNPS", "CHR_ID", "CHR_POS")]
+# Remove SNP with missing location info
+atable <- atable[atable$CHR_POS != "", ]
+stopifnot(atable$CHR_POS != "")
+# Collapse multiple entries
+atable[grepl(";", atable$CHR_POS), ]
+
+atable$CHR_POS <- as.numeric(atable$CHR_POS)
+autism.pos=read.table("../Data/significant/assignificantinpos.txt",header = T)
+
+```
+
+
+```{r}
+common <- intersect(atable$SNPS, autism.pos$rsid)
+atable[atable$SNPS %in% common, c("SNPS", "CHR_ID", "CHR_POS")]
+autism.pos[autism.pos$rsid %in% common, c("rsid", "chroms", "positions")]
+```
+
+```{r}
+window <- 500000
+df_theirs <- data.frame(chr = atable$CHR_ID,
+                        start = atable$CHR_POS - window,
+                        end = atable$CHR_POS + window)
+gr_theirs <- 
+```
+
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

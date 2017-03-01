@@ -1,0 +1,576 @@
+---
+title: "manhattan"
+output: html_document
+---
+
+
+
+```{r}
+
+#install.packages("RSQLite") 
+library("RSQLite")
+# source("http://bioconductor.org/biocLite.R") 
+rs_to_pos = function(rsid) {
+    library(SNPlocs.Hsapiens.dbSNP141.GRCh38)
+    snps = snpsById(SNPlocs.Hsapiens.dbSNP141.GRCh38, rsid, ifnotfound = 'warning')
+    chroms = as.character(sapply(snps, function(x) x@seqnames@values))
+    chroms = gsub('ch([0-9]+)','\\1', chroms)
+    positions = as.character(sapply(snps, function(x) x@ranges@start))
+    dat = as.data.frame(cbind(rsid, chroms, positions))
+    
+    colnames(dat) = c('SNP', 'CHR', 'BP')
+    dat$CHR = as.numeric(as.character(dat$CHR))
+    dat$BP = as.numeric(as.character(dat$BP))
+    dat
+}
+
+overlap_by_million = function(dat, ref) {
+    library(DBI)
+    con = dbConnect(RSQLite::SQLite(), ":memory:")
+    dbWriteTable(con, "reference", ref)
+    dbWriteTable(con, "dataset", dat)
+    query = "SELECT DISTINCT dataset.CHR, dataset.BP, dataset.SNP FROM dataset, reference 
+             WHERE dataset.CHR = reference.CHR 
+             AND  (dataset.BP BETWEEN (reference.BP - 1000000) AND (reference.BP + 1000000))
+             ORDER BY dataset.CHR, dataset.BP"
+    query = dbSendQuery(con, query)
+    res = dbFetch(query, n = -1)
+    dbClearResult(query)
+    dbDisconnect(con)
+    res
+}
+```
+
+Now we need to do this for each dataset:
+
+```{r}
+# Load reference hits
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-24-autism.tsv", sep = '\t', head = T,
+                stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/assignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsas.txt")
+```
+
+
+
+
+```{r}
+# Load reference hits
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-28-aam.tsv", sep = '\t', head = T,
+                stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/aamsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsaam.txt")
+```
+
+
+
+```{r}
+# Load reference hits
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-28-anorexia nervosa.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/ansignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsan.txt")
+```
+
+```{r}
+# Load reference hits
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-28-anxiety.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/anxsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsanx.txt")
+```
+
+
+```{r}
+# Load reference hits
+
+
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-28-bipolar disorder.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+good = rsid[grepl("^rs*", rsid)]
+bad = rsid[!grepl("^rs*", rsid)]
+rsid=good
+
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/bipsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsbip.txt")
+```
+
+```{r}
+# Load reference hits
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-28-mdd.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/mddsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsmdd.txt")
+```
+
+```{r}
+# Load reference hits
+db = read.delim("~/Downloads/gwas-association-downloaded_2017-02-28-cd.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+good = rsid[grepl("^rs*", rsid)]
+bad = rsid[!grepl("^rs*", rsid)]
+rsid=good
+
+ref = rs_to_pos(rsid)
+
+
+# Load data
+df = read.table('../Data/significant/cdsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitscd.txt")
+```
+
+
+```{r}
+# Load reference hits
+
+db = read.delim("~/Downloads/gwas-association-downloaded_2017-02-28-ulcerative.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+good = rsid[grepl("^rs*", rsid)]
+bad = rsid[!grepl("^rs*", rsid)]
+rsid=good
+
+ref = rs_to_pos(rsid)
+
+# Load data
+df = read.table('../Data/significant/ucsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsuc.txt")
+```
+
+
+```{r}
+# Load reference hits
+
+db = read.delim("~/Downloads/gwas-association-downloaded_2017-02-28-bmi.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+good = rsid[grepl("^rs*", rsid)]
+bad = rsid[!grepl("^rs*", rsid)]
+rsid=good
+
+ref = rs_to_pos(rsid)
+
+# Load data
+df = read.table('../Data/significant/bmisignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsbmi.txt")
+```
+
+```{r}
+# Load reference hits
+db = read.delim("~/Downloads/gwas-association-downloaded_2017-02-28-femoral.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+good = rsid[grepl("^rs*", rsid)]
+bad = rsid[!grepl("^rs*", rsid)]
+rsid=good
+
+ref = rs_to_pos(rsid)
+
+
+# Load data
+df = read.table('../Data/significant/fnsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsfn.txt")
+```
+
+
+```{r}
+# Load reference hits
+db = read.delim("~/Downloads/gwas-association-downloaded_2017-02-28-schizophrenia.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+good = rsid[grepl("^rs*", rsid)]
+bad = rsid[!grepl("^rs*", rsid)]
+rsid=good
+
+ref = rs_to_pos(rsid)
+
+
+# Load data
+df = read.table('../Data/significant/sczsignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsscz.txt")
+```
+
+
+```{r}
+# Load reference hits
+db = read.table("~/Downloads/gwas-association-downloaded_2017-02-28-forearm.tsv", sep = '\t', head = T,stringsAsFactors = FALSE)
+rsid = unique(trimws(strsplit(paste0(db$SNPS, collapse=';'), ';')[[1]]))
+ref = rs_to_pos(rsid)
+# Load data
+df = read.table('../Data/significant/fasignificantin.txt', stringsAsFactors = FALSE)
+dat = rs_to_pos(rownames(df))
+# Find overlap between known hits and data by 1MB ranges
+result = overlap_by_million(dat, ref)
+
+# Convert factors to characters
+dat$SNP <- as.character(dat$SNP)
+result$SNP <- as.character(result$SNP)
+
+a=dat[!(dat$SNP%in%result$SNP),]
+hits_uniq <- merge(a, df, by.x = "SNP", by.y = "row.names")
+
+#overlap_by_million(dat[1, ], data.frame(SNP = "rsfake", CHR = "notreal", BP = 1229930))
+
+```
+
+```{r}
+
+keep <- character()
+remaining <- hits_uniq
+while(nrow(remaining) > 0) {
+  remaining <- remaining[order(remaining$lfsr.mash.a..x.), ]
+  top <- remaining[1, ]
+  keep <- c(keep, top$SNP)
+  nearby <- overlap_by_million(remaining, top)
+  remaining <- remaining[!(remaining$SNP %in% nearby$SNP), ]
+}
+hits_pruned <- hits_uniq[hits_uniq$SNP %in% keep, ]
+hits_pruned <- hits_pruned[order(hits_pruned$CHR, hits_pruned$BP), ]
+
+write.table(hits_pruned,"prunedhitsfa.txt")
+```
+
+
+
+
+

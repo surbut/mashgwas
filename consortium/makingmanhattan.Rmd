@@ -19,11 +19,8 @@ file.list=list.files(path="../Data/significant/",pattern = "in")
 for(i in 12:length(file.list)){
 dat=read.table(paste0("../Data/significant/",file.list[i]))
 ##
-rsid = rownames(dat)[1:5]
 snps = snpid2loc(SNPlocs.Hsapiens.dbSNP141.GRCh38, rsid)
-dat = read.table('datafile.txt')
 rsid = rownames(dat)
-snps = snpid2loc(SNPlocs.Hsapiens.dbSNP141.GRCh38, rsid)
 chroms = gsub('ch([0-9]+)','\\1', names(snps))
 positions = as.character(snps)
 dat = as.data.frame(cbind(rsid, chroms, positions, dat[,1]))

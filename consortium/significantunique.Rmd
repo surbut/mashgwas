@@ -1,0 +1,36 @@
+---
+title: "summaryofexistingfiles"
+output: html_document
+---
+
+In this document we will summarize our results:
+
+```{r}
+z.matched=read.table("z.matched.txt",stringsAsFactors = F)
+newnames=sapply(colnames(z.matched),function(x){strsplit(x,split = "_")[[1]][[2]]})
+colnames(z.matched)=newnames
+file.list=list.files(path = "prunedhits",pattern = "prunedhits")
+sapply(file.list,function(x){strsplit(strsplit(x,split=".txt")[[1]],split = "hits")[[1]][2]})
+for(i in 1:length(file.list)){
+  f=read.table(paste0("prunedhits/",file.list[[i]]))
+  x=file.list[[i]]
+  name=strsplit(strsplit(x,split=".txt")[[1]],split = "hits")[[1]][2]
+  print(c(name,nrow(f)))
+  m=merge(f,z.matched,by.x="SNP",by.y="row.names")
+  m2=cbind(m[,1:4],m[,name])
+  pvalues=sapply(m2[,5],function(x){2*(1-pnorm(abs(x)))})
+  hist(pvalues,main="")
+  title(main=paste0(name,"pvalues"), col.main="red")
+  mtext(paste0(nrow(f),"sig"))
+   
+}
+
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
