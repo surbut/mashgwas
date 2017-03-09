@@ -6,7 +6,9 @@ output: html_document
 Creating dataset:
 
 ```{r global_options, include=FALSE}
-#knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='~/Dropbox/PhDthesis/Figures/', warning=FALSE, message=FALSE,cache=T)
+library("knitr")
+knitr::opts_chunk$set(fig.width=12, fig.height=8, warning=FALSE, message=FALSE,cache=T)
+knitr::opts_chunk$set(fig.path = "/Users/sarahurbut/Dropbox/PhDThesis/Figures/") 
 files=readRDS("~/Dropbox/mash_data.rds")
 library('dplyr')
 ```
@@ -111,7 +113,7 @@ covmat=readRDS("../Data/covmatconsortium.rds")
 pis=readRDS(paste0("../Data/pis",A,".rds"))$pihat
 pi.mat=data.frame(matrix(pis[-length(pis)],ncol=17+9,byrow=TRUE))
 
-z.stat=read.table("z.matched.txt",header=TRUE)
+z.stat=read.table("../Data/z.matched.txt",header=TRUE)
 post.means=read.table("../Data/allmeans.txt")[,-1]
 lfsr.mash=read.table("../Data/giant3lfsr.txt")[,-1]
 lfsr=lfsr.mash
@@ -185,7 +187,7 @@ system('montage -geometry 100% -tile 3x3 ./*_eigen.png ~/Dropbox/PhDThesis/Figur
 
 We can see that `r sum(colSums(pi.mat[,1:9]))` proportion of the prior weight is assigned to the learned matrices. Looks good!
 
-```{r,echo=FALSE,eval=T}
+```{r,echo=FALSE,eval=F}
 library(gplots)
 library(ggplot2)
 library(ggplot2)
@@ -276,13 +278,31 @@ ones=which(rowSums(dist)==1)
 barplot(apply(lfsr[which(rowSums(lfsr<=thresh)==1),],2,function(x){sum(x<=thresh)}),las=2,main=paste0("Number of SNPs with LFSR<",0.05," in Single subgroup"),cex.names=1)
 ```
 
+WE might also want to see how many survive our 'pruning algorithm':
+
+```{r}
+#system('cd prunedhits; for i in *; do wc -l $i; done > ../numbers.txt')  
+n=read.table("numbers.txt",header = T,stringsAsFactors = F)
+sigs=n[,1]
+trait=sapply(n[,2],function(x){strsplit(strsplit(x,split = "hits")[[1]][[2]],split = ".",fixed = T)[[1]][1]})
+
+pruned=data.frame(sigs);rownames(pruned)=trait
+
+library("colorRamps")
+
+clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF","#E0F3F8","#91BFDB","#4575B4")))(12)
+barplot((as.numeric(pruned[,1])),las=2,main="NumberofPrunedHits",col=clrs,names=rownames(pruned))
+#clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
+
+```
+
 How many associations do we call significant at an LFSR of 0.05? `r sum(lfsr.mash<0.05)` which is `r mean(lfsr.mash<0.05)` part of the data. When we plot t-spec by subgroup, we see that subgroup specific effects are rare and of small magnitude because of the sharing among tissues for a given fold change difference.
 
 What about in ash?
 
-```{r ashscript}
+```{r echo=FALSE,eval=F}
 #ashmeans=read.table("univariateash.pm.txt")
-ashlfsr=read.table('univariateash.lfsr.txt')
+ashlfsr=read.table('../Data/univariateash.lfsr.txt')
 
 #dim(ashmeans)
 dim(ashlfsr)
@@ -345,7 +365,7 @@ Now, we'd like to add pairwise sharing by magnitude and sign:
 
 ```{r pairwisesharing}
 library("mashr")
-se.matched=as.matrix(read.table("se.matched.txt"))
+se.matched=as.matrix(read.table("../Data/se.matched.txt"))
 pm.mash.beta=post.means*se.matched
 colnames(pm.mash.beta)=names
 lfsr.mash.sig=lfsr.mash[rowSums(lfsr.mash<0.05)>0,]##only 137,223 are significant in at least one subgroup
@@ -362,56 +382,83 @@ library('corrplot')
 library(gplots)
 library(ggplot2)
 
-class(signheatmap)
-
-
-heatmap.2(signheatmap,Rowv=FALSE,Colv=FALSE,
-          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green,main=paste0("Pairwise Sharing by Sign"),
-          cexRow=0.6,cexCol=0.5,cex.main=0.5,breaks=seq(0.7,1,0.01))
+# class(signheatmap)
+# 
+# 
+# heatmap.2(signheatmap,Rowv=FALSE,Colv=FALSE,
+#           symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+#           col=blue2green,main=paste0("Pairwise Sharing by Sign"),
+#           cexRow=0.6,cexCol=0.5,cex.main=0.5,breaks=seq(0.7,1,0.01))
 
 
 library('lattice')
 
 clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
-                               "#E0F3F8","#91BFDB","#4575B4")))(64)
+                            "#E0F3F8","#91BFDB","#4575B4")))
 #clrs[63:64] <- "darkviolet"
 lat=signheatmap
 lat[lower.tri(lat)] <- NA
-print(levelplot(lat,col.regions = clrs,xlab = "",ylab = "",colorkey = TRUE,title(main="PairwiseSharingBySign")))
 
 
-heatmap.2(magheatmap,Rowv=FALSE,Colv=FALSE,
-          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green,main=paste0("Pairwise Sharing by Magnitude"),
-          cexRow=0.6,cexCol=2,cex.main=0.5,#breaks=seq(0.35,1,0.01),
-          labCol=NA)
+print(levelplot(lat,#col.regions = colorRampPalette(c('dark red','white','dark blue'))),
+      col.regions=clrs,
+                xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingBySign"))
+
+
+
+
+clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
+                            "#E0F3F8","#91BFDB","#4575B4")))
+#clrs[63:64] <- "darkviolet"
+lat=magheatmap
+lat[lower.tri(lat)] <- NA
+
+print(levelplot(lat,#col.regions = colorRampPalette(c('dark red','white','dark blue'))),
+      col.regions=clrs,
+                xlab = "",ylab = "",colorkey = TRUE,main="PairwiseSharingByMagnitude"))
+
+# heatmap.2(magheatmap,Rowv=FALSE,Colv=FALSE,
+#           symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+#           col=blue2green,main=paste0("Pairwise Sharing by Magnitude"),
+#           cexRow=0.6,cexCol=2,cex.main=0.5,#breaks=seq(0.35,1,0.01),
+#           labCol=NA)
 
 library('lattice')
 
-clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF",
-                               "#E0F3F8","#91BFDB","#4575B4")))(64)
+clrs <- colorRampPalette(rev(c("#D73027","#FC8D59","#FEE090","#FFFFBF","#E0F3F8","#91BFDB","#4575B4")))(64)
+
+#clrs=colorRampPalette(c('dark red','white','dark blue'))
 #clrs[63:64] <- "darkviolet"
+
 absmagheatmap=compute.mag.by.sharing(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.mash.beta = abs(pm.mash.sig))
 absmagheatmap[lower.tri(absmagheatmap)] <- NA
 lat=absmagheatmap
 lat[lower.tri(lat)] <- NA
-print(levelplot(lat,col.regions = clrs,xlab = "",ylab = "",colorkey = TRUE,title(main="PairwiseSharingByMagnitude")))
+
+
+print(levelplot(lat,col.regions = clrs,main="PairwiseSharingByAbsMagnitude",#colorRampPalette(c('dark red','white','dark blue'))),
+                xlab = "",ylab = "",colorkey = TRUE))
+
+
 ```
 
 Now, let's look at sharing my asbolute value of magntiude:
 ```{r}
 
-heatmap.2(signheatmap,Rowv=FALSE,Colv=FALSE,
-          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green,main=paste0("Pairwise Sharing by Sign"),
-          cexRow=0.6,cexCol=0.5,cex.main=0.5)
-#,breaks=seq(0.7,1,0.01))
-
-heatmap.2(1-signheatmap,Rowv=FALSE,Colv=FALSE,
-          symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green,main=paste0("Pairwise Sharing by Opposite Sign"),
-          cexRow=0.6,cexCol=0.5,cex.main=0.5)
+# heatmap.2(signheatmap,Rowv=FALSE,Colv=FALSE,
+#           symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+#           #col=blue2green,
+#           col=colorRampPalette(c('dark red','white','dark blue')),
+# main=paste0("Pairwise Sharing by Sign"),
+#           cexRow=0.6,cexCol=0.5,cex.main=0.5)
+# #,breaks=seq(0.7,1,0.01))
+# 
+# heatmap.2(1-signheatmap,Rowv=FALSE,Colv=FALSE,
+#           symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
+#           col=colorRampPalette(c('dark red','white','dark blue')),
+#           #col=blue2green,
+#           main=paste0("Pairwise Sharing by Opposite Sign"),
+#           cexRow=0.6,cexCol=0.5,cex.main=0.5)
 #,breaks=seq(0.7,1,0.01))
 
 
@@ -420,12 +467,16 @@ absmagheatmap=compute.mag.by.sharing(lfsr.mash = lfsr.mash.sig,thresh = 0.05,pm.
 absmagheatmap[lower.tri(absmagheatmap)] <- NA
 heatmap.2(absmagheatmap,Rowv=FALSE,Colv=FALSE,
           symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green,main=paste0("Pairwise Sharing by abs(Magnitude)"),
+          #col=blue2green,
+          col=clrs,
+          main=paste0("Pairwise Sharing by abs(Magnitude)"),
           cexRow=0.6,cexCol=2,cex.main=0.5,#breaks=seq(0.35,1,0.01),
           labCol=NA)
 
 heatmap.2(magheatmap,Rowv=FALSE,Colv=FALSE,
           symm=TRUE,dendrogram="none",density="none",trace="none",#col=redblue,
-          col=blue2green,main=paste0("Pairwise Sharing by Magnitude"),
+          #col=blue2green,
+          col=clrs,main=paste0("Pairwise Sharing by Magnitude"),
           cexRow=0.6,cexCol=2,cex.main=0.5,#breaks=seq(0.35,1,0.01),
           labCol=NA)
+```

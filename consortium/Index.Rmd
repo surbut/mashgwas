@@ -1,0 +1,45 @@
+---
+title: "Index"
+output: html_document
+---
+
+
+**Last updated:** `r Sys.Date()`
+
+**Code version:** `r system("git log -1 --format='%H'", intern = TRUE)`
+
+In this directory, I have files pertaining to the GWAS consortium data which looked at the genetic effects across 16 different conditions. We analyzed `~800K SNPS downloaded from a variety of consortiums. Details can be found [here](trait_ss.xlsx)
+
+TheseThere are two kinds of simulations in this directory.
+
+1) [Consortium Analysis](consortiumscript.html)
+
+  In the file here  we show
+
+* The majority components
+
+* Number of Singletons per trait
+
+* Number of pruned hits per trait
+
+* Total number of significant snps per trait
+
+* Pairwise sharing by sign and magnitude
+
+2) [Primary Component](uks.html)
+
+Here, we show a heatmap of the primary pattern of sharing.
+
+
+3) [Pruned Hits](significantunique.html)
+
+We assembled the Pruned Hits for 12 of the 16 traits by intersecting all SNPs downloaded from the [gwas catalog](https://www.ebi.ac.uk/gwas/) within 1 mb of our hits (i.e., significant at lfsr < 0.05 in trait of interest)
+
+Then, we 'pruned' the remaning hits through the minimal iterative process (i.e., take min, remove within 1 b, repeat). We plot:
+
+* A histogram of pvalues
+
+* Total number of significant remianing per trait
+
+* Examples of 'nudged' SNPS (i.e., low Z stat/high pval in univariate analysis but significant in joint)
+

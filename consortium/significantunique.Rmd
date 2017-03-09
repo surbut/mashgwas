@@ -21,12 +21,12 @@ covmat=readRDS("../Data/covmatconsortium.rds")
 pis=readRDS(paste0("../Data/pis",A,".rds"))$pihat
 pi.mat=data.frame(matrix(pis[-length(pis)],ncol=17+9,byrow=TRUE))
 
-z.stat=z.matched=read.table("z.matched.txt",header=TRUE,stringsAsFactors = F)
+z.stat=z.matched=read.table("../Data/z.matched.txt",header=TRUE,stringsAsFactors = F)
 post.means=read.table("../Data/allmeans.txt")[,-1]
 lfsr.mash=read.table("../Data/giant3lfsr.txt")[,-1]
 
-b.matched=read.table(file = "betamatched.txt")
-se.matched=read.table(file="se.matched.txt")
+b.matched=read.table(file = "../Data/betamatched.txt")
+se.matched=read.table(file="../Data/se.matched.txt")
 
 newnames=sapply(colnames(z.matched),function(x){strsplit(x,split = "_")[[1]][[2]]})
 colnames(z.matched)=newnames
@@ -55,7 +55,7 @@ Let's take a couple examples where a high pvalue still yields significance. Let'
 
 ```{r, echo=T}
 ###For a test example let's find the pvalues that are big
-i=1
+i=7
 library("mashr")
 f=read.table(paste0("prunedhits/",file.list[[i]]))
 x=file.list[[i]]
@@ -185,4 +185,139 @@ u=post.weights%*%all.arrays$post.ups
 all.equal(as.numeric(sapply(seq(1:16),function(x){1-max(d[x],u[x])})),as.numeric(lfsr.mash[j,]))
 
 metaplot(mn = as.numeric(b.matched[j,]),se = as.numeric(se.matched[j,]),labels = names)
+```
+
+Let's try for Femoral neck: identify a z statistic that is small but has a small lfsr.
+
+```{r}
+i=9
+###For a test example let's find the pvalues that are big
+f=read.table(paste0("prunedhits/",file.list[[i]]))
+x=file.list[[i]]
+name=strsplit(strsplit(x,split=".txt")[[1]],split = "hits")[[1]][2]
+  print(c(name,nrow(f)))
+  m=merge(f,z.matched,by.x="SNP",by.y="row.names")
+  m2=cbind(m[,1:4],z.stat=m[,name])##bind the original z score
+  pvalues=sapply(m2[,5],function(x){2*(1-pnorm(abs(x)))})##convert to a pvalue
+o=order(pvalues,decreasing = T)[1]
+m2[o,]
+
+j=which(rownames(z.matched)==m2[o,"SNP"])
+
+
+lfsr=lfsr.mash
+
+
+cov=covmat
+b.test=z.stat
+se.test=matrix(rep(1,ncol(b.test)*nrow(b.test)),nrow(b.test),ncol=ncol(b.test))
+
+
+b.mle=as.vector(t(b.test[j,]))##turn i into a R x 1 vector
+V.gp.hat=diag(se.test[j,])^2
+V.gp.hat.inv <- solve(V.gp.hat)
+all.arrays=post.array.per.snp(j=j,covmat = cov,b.gp.hat = b.test,se.gp.hat = se.test)
+
+
+U.gp1kl <- (post.b.gpkl.cov(V.gp.hat.inv, cov[[k]]))
+mu.gp1kl <- as.array(post.b.gpkl.mean(b.mle, V.gp.hat.inv, U.gp1kl))
+#(all.arrays$post.means[k,])
+all.equal(as.numeric(all.arrays$post.means[k,]),as.numeric(mu.gp1kl))
+all.equal(as.numeric(all.arrays$post.covs[k,]),as.numeric(diag(U.gp1kl)))
+##Now, check to make sure weighting is correct
+
+
+log.lik.snp=log.lik.func(b.mle,V.gp.hat,cov)
+log.lik.minus.max=log.lik.snp-max(log.lik.snp)
+#log.pi=log(pis)
+#s=log.lik.minus.max+log.pi
+exp.vec=exp(log.lik.minus.max)
+post.weights=t(exp.vec*pis/sum(exp.vec*pis))
+all.equal(as.numeric(post.means[j,]),as.numeric(post.weights%*%all.arrays$post.means))
+
+########
+
+r=3
+
+pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = FALSE)## and so an LFSR of 0.02 makes perfect sense because post.weight at this component is 0.98.
+#show that this is in the array correctly
+all.arrays$post.ups[k,r]
+
+pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = T)## and so an LFSR of 0.02 makes perfect sense because post.weight at this component is 0.98.
+#show that this is in the array correctly
+all.arrays$post.downs[k,r]
+d=post.weights%*%all.arrays$post.downs
+u=post.weights%*%all.arrays$post.ups
+
+all.equal(as.numeric(sapply(seq(1:16),function(x){1-max(d[x],u[x])})),as.numeric(lfsr.mash[j,]))
+
+metaplot(mn = as.numeric(b.matched[j,]),se = as.numeric(se.matched[j,]),labels = names,xlab = "",ylab="")
+```
+
+
+Let's try for Crohn's disease: identify a z statistic that is small but has a small lfsr.
+
+```{r}
+i=7
+###For a test example let's find the pvalues that are big
+f=read.table(paste0("prunedhits/",file.list[[i]]))
+x=file.list[[i]]
+name=strsplit(strsplit(x,split=".txt")[[1]],split = "hits")[[1]][2]
+  print(c(name,nrow(f)))
+  m=merge(f,z.matched,by.x="SNP",by.y="row.names")
+  m2=cbind(m[,1:4],z.stat=m[,name])##bind the original z score
+  pvalues=sapply(m2[,5],function(x){2*(1-pnorm(abs(x)))})##convert to a pvalue
+o=order(pvalues,decreasing = T)[1]
+m2[o,]
+
+j=which(rownames(z.matched)==m2[o,"SNP"])
+
+
+lfsr=lfsr.mash
+
+
+cov=covmat
+b.test=z.stat
+se.test=matrix(rep(1,ncol(b.test)*nrow(b.test)),nrow(b.test),ncol=ncol(b.test))
+
+
+b.mle=as.vector(t(b.test[j,]))##turn i into a R x 1 vector
+V.gp.hat=diag(se.test[j,])^2
+V.gp.hat.inv <- solve(V.gp.hat)
+all.arrays=post.array.per.snp(j=j,covmat = cov,b.gp.hat = b.test,se.gp.hat = se.test)
+
+
+U.gp1kl <- (post.b.gpkl.cov(V.gp.hat.inv, cov[[k]]))
+mu.gp1kl <- as.array(post.b.gpkl.mean(b.mle, V.gp.hat.inv, U.gp1kl))
+#(all.arrays$post.means[k,])
+all.equal(as.numeric(all.arrays$post.means[k,]),as.numeric(mu.gp1kl))
+all.equal(as.numeric(all.arrays$post.covs[k,]),as.numeric(diag(U.gp1kl)))
+##Now, check to make sure weighting is correct
+
+
+log.lik.snp=log.lik.func(b.mle,V.gp.hat,cov)
+log.lik.minus.max=log.lik.snp-max(log.lik.snp)
+#log.pi=log(pis)
+#s=log.lik.minus.max+log.pi
+exp.vec=exp(log.lik.minus.max)
+post.weights=t(exp.vec*pis/sum(exp.vec*pis))
+all.equal(as.numeric(post.means[j,]),as.numeric(post.weights%*%all.arrays$post.means))
+
+########
+
+r=3
+
+pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = FALSE)## and so an LFSR of 0.02 makes perfect sense because post.weight at this component is 0.98.
+#show that this is in the array correctly
+all.arrays$post.ups[k,r]
+
+pnorm(0,mean = mu.gp1kl[r],sd = sqrt(diag(U.gp1kl)[r]),lower.tail = T)## and so an LFSR of 0.02 makes perfect sense because post.weight at this component is 0.98.
+#show that this is in the array correctly
+all.arrays$post.downs[k,r]
+d=post.weights%*%all.arrays$post.downs
+u=post.weights%*%all.arrays$post.ups
+
+all.equal(as.numeric(sapply(seq(1:16),function(x){1-max(d[x],u[x])})),as.numeric(lfsr.mash[j,]))
+
+metaplot(mn = as.numeric(b.matched[j,]),se = as.numeric(se.matched[j,]),labels = names,xlab = "",ylab="")
 ```

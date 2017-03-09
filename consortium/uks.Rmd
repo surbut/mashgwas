@@ -1,0 +1,49 @@
+---
+title: "covariancematrices"
+output: html_document
+---
+
+
+Let's plot the most common patterns of sharing:
+```{r,fig.show='hide'}
+library('knitr')
+knitr::opts_chunk$set(cache=TRUE)
+opts_chunk$set(fig.path = "/Users/sarahurbut/Dropbox/PhDThesis/Figures/") 
+covmat=readRDS("../Data/covmatconsortium.rds")
+pis=readRDS("../Data/pisconsortium.rds")$pihat
+pi.mat=matrix(pis[-length(pis)],ncol=26,byrow = T)
+names=read.table("../Data/traits.txt",stringsAsFactors = F)[,1]
+barplot(colSums(pi.mat),main="componentbyimportance",names=c(rep(paste0("Uk",seq(1:9))),names,"all"),las=2)
+          
+```
+
+
+Here we make the covariance matrix:
+```{r uks,fig.height=10,fig.width=10}
+library(gplots)
+library(ggplot2)
+library('colorRamps')
+#install.packages("fields")
+library(fields)
+library("lattice")
+library("colorRamps")
+
+
+for(k in 1:3){
+lat=cov2cor(covmat[[k]])
+colnames(lat)=rownames(lat)=names
+
+lat[lower.tri(lat)] <- NA
+
+print(levelplot(lat,col.regions=blue2red(256),#col.regions = clrs,
+                xlab = "",ylab = "",colorkey = TRUE,main=paste0("Uk",k,"pi",round(colSums(pi.mat)[k],2))))
+
+
+col=colorRampPalette(c('dark red','white','dark blue'))
+
+print(levelplot(lat,col.regions=col,#col.regions = clrs,
+                xlab = "",ylab = "",colorkey = TRUE,main=paste0("Uk",k,"pi",round(colSums(pi.mat)[k],2))))
+}
+
+```
+
